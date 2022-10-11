@@ -989,7 +989,7 @@ PBIRESTAPIComm.Publish = [
             "ButtonHelp"
         )
     },
-    LearnMoreUrl = "https://powerbi.microsoft.com/",
+    LearnMoreUrl = "https://github.com/kerski/powerquery-connector-pbi-rest-api-commercial/blob/main/README.md#functions-implemented",
     SourceImage = PBIRESTAPIComm.Icons,
     SourceTypeImage = PBIRESTAPIComm.Icons
 ];

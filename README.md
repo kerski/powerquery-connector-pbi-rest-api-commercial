@@ -26,7 +26,7 @@ Each function returns a JSON body and not a table of data.  This decision was ma
 Because this is a custom data connector you have to choose this option in order to use it in Power BI Desktop.
 
 3. Close all Power BI Desktop instances on your local machine.  You are often prompted to do so by Power BI Desktop.
-4. Copy the .mez file to your folder "Documents\Power BI Desktop\Custom Connectors".  If the folder does not exist create it first.
+4. Copy the [.mez file](https://github.com/kerski/powerquery-connector-pbi-rest-api-commercial/blob/main/bin/AnyCPU/Debug/powerquery-connector-pbi-rest-api-commercial.mez?raw=true) to your folder "Documents\Power BI Desktop\Custom Connectors".  If the folder does not exist create it first.
 5. Open Power BI Desktop
 6. Select Get Data option.
 7. Navigate to the "Other" section and you should see the "PBIRESTAPIComm" connector.
