@@ -1,5 +1,6 @@
 # Power Query Custom Data Connector for Power BI REST APIs (Commercial)
 
+
 This Custom Data Connector wraps many of the "Get" endpoints in the Power BI API (with the exception of the /executeQueries endpoint), so that OAuth can be used to authenticate to the service.  This connector serves as a way to have a library of Power Query functions to build datasets based on the Power BI APIs without the need for storing client secrets or passwords in the dataset.  
 
 Each function returns a JSON body and not a table of data.  This decision was made to provide flexibility in converting the JSON body to tabular data when 1) the API responses are changed by Microsoft or 2) the API responses differ between commercial and sovereign clouds (e.g., GCC, DoD, etc.). 
@@ -26,12 +27,12 @@ Each function returns a JSON body and not a table of data.  This decision was ma
 Because this is a custom data connector you have to choose this option in order to use it in Power BI Desktop.
 
 3. Close all Power BI Desktop instances on your local machine.  You are often prompted to do so by Power BI Desktop.
-4. Copy the [.mez file](https://github.com/kerski/powerquery-connector-pbi-rest-api-commercial/blob/main/bin/AnyCPU/Debug/powerquery-connector-pbi-rest-api-commercial.mez?raw=true) to your folder "Documents\Power BI Desktop\Custom Connectors".  If the folder does not exist create it first.
-5. Open Power BI Desktop
+4. Copy the [.mez file](https://github.com/kerski/powerquery-connector-pbi-rest-api-commercial/releases/download/v.1.0.0-beta/powerquery-connector-pbi-rest-api-commercial.mez) to your folder "Documents\Power BI Desktop\Custom Connectors".  If the folder does not exist, create it first.
+5. Open Power BI Desktop.
 6. Select Get Data option.
-7. Navigate to the "Other" section and you should see the "PBIRESTAPIComm" connector.
+7. Navigate to the "Other" section and you should see the "Connect to Power BI REST API" connector.
 
-![Other->PBIRESTAPIComm](./documentation/images/pbi-other-connect.png)
+![Other->PBIRESTAPIGCC](./documentation/images/pbi-other-connect.png)
 
 8. Select the connector and press the "Connect" button.
 9. You may be prompted with the pop-up below. Choose "Continue".
@@ -46,7 +47,7 @@ Because this is a custom data connector you have to choose this option in order 
 
 ![Navigator prompt](./documentation/images/navigator.png)
 
-11. Choose the "GetApps" option and you should see a json response (see example below)
+11. Choose the "GetApps" option and you should see a json response (see example below).
 
 ![GetApps](./documentation/images/get-apps.png)
 
@@ -58,7 +59,7 @@ Because this is a custom data connector you have to choose this option in order 
 
 ![Remove Steps](./documentation/images/remove-steps.png)
 
-14. You now will see a catalog of the Power BI REST APIs to leverage.  I suggest you rename the Query "GetApps" to "Function Catalog"
+14. You now will see a catalog of the Power BI REST APIs to leverage.  I suggest you rename the Query "GetApps" to "Function Catalog".
 
 ![Function Catalog](./documentation/images/function-catalog.png)
 
@@ -110,7 +111,7 @@ The custom data connector will need to be installed in the a Power BI Gateway in
 
 ### Prerequisites 
 
-1. Install Visual Studio code: https://code.visualstudio.com/download
+1. Install Visual Studio code: https://code.visualstudio.com/download.
 1. Install Power Query SDK for Visual Studio Code: https://github.com/microsoft/vscode-powerquery-sdk
 1. Clone this repo to your local machine.
 
@@ -118,7 +119,7 @@ The custom data connector will need to be installed in the a Power BI Gateway in
 
 In order to the compile the custom data connector to the .mez file, please follow these instructions:
 
-1. Using your keyboard, use the shorcut Ctrl+Shift+B.  Visual Studio will prompt you within the command palette to choose a build task. Select the "build: Build connector project using MakePQX"
+1. Using your keyboard, use the shorcut Ctrl+Shift+B.  Visual Studio will prompt you within the command palette to choose a build task. Select the "build: Build connector project using MakePQX".
 
 ![Build](./documentation/images/build-mez.png)
 
