@@ -80,7 +80,7 @@ With the Function Catalog created, please follow these steps to leverage the fun
 
 ### Functions Implemented
 
-Not all functions from the Power BI REST API has been implemented.  Here are the endpoints availabe at the moment.
+Not all functions from the Power BI REST API have been implemented.  Here are the endpoints available at the moment.
 
 ### Apps
 | End Point                      | Description  | MSDN Documentation |
@@ -154,7 +154,7 @@ In order to the compile the custom data connector to the .mez file, please follo
 
 ![Build](./documentation/images/build-mez.png)
 
-2. If the build succeeds the .mez file will update in the fold "bin\AnyCPU\Debug".
+2. If the build succeeds the .mez file will update in the folder "bin\AnyCPU\Debug".
 
 3. If the build fails the Power Query SDK often presents a notification (see example below).
 
