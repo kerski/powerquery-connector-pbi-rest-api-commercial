@@ -1,75 +1,540 @@
-﻿// Use this file to write queries to test your data connector
-let
-    /*** TEST VARIABLES***/
-    AppTestID = "{INSERT APP ID}",
-    GroupTestID = "{INSERT GROUP ID}",
-    DatasetTestID = "{INSERT DATASET ID}",
-    ReportTestID = "{INSERT REPORT ID}",
+﻿section UnitTestingUnitTests;
 
-    Query = "DEFINE
-	// Pick a static date(s)
-	VAR __January2011 = DATE(2011,1,1)
-    VAR __January2011Filter = TREATAS({__January2011}, 'DateDim'[Date])
-	VAR __BlankDayFilter = TREATAS({0},'DateDim'[DateID])
-	/* Check for blank date */
-	VAR _Date_Dim_Blank_Format = CALCULATE(MIN('DateDim'[Month Year]),__BlankDayFilter)
-	VAR _Date_Dim_NonBlank_Format = CALCULATE(MAX('DateDim'[Month Year]),__January2011Filter)
-	
-/*Run Tests*/
-VAR _Tests = 
-UNION(
-ROW(
-	""TestName"", ""Calculated Column: Month Year column should be blank when no date (1/1/0001) is selected."", 
-	""ExpectedValue"", ""Not Available"",
-	""ActualValue"", _Date_Dim_Blank_Format
-),
-ROW(
-	""TestName"", ""Calculated Column: Month Year column should be Jan-11 when filtered by January 1, 2011."", 
-	""ExpectedValue"", _Date_Dim_NonBlank_Format,
-	""ActualValue"", ""Jan-11""
-)
-)
-
-/*Output Pass/Fail*/
-EVALUATE ADDCOLUMNS(_Tests,""Passed"",[ExpectedValue] = [ActualValue])",
-
-    /*** End TEST VARIABLES***/
-
+shared MyExtension.UnitTest =
+[
+    // Put any common variables here if you only want them to be evaluated once
     Source = NavigationTable.Simple(),
-    /* Apps */
-    GetApp = Source{[Key="GetApp"]}[Data],
-    GetAppResult = GetApp(AppTestID),
+    
+    /*Variables*/
+    AppTestID = "{APP ID}",
+    GroupTestID = "{GROUP ID}",
+    GroupNameFilter = "name eq 'Custom Connector Test'",
+    DatasetTestID = "{DATASET ID}",
+    ReportTestID = "{REPORT ID}",
+    ReportTestName = "SampleModel",
+    PipelineTestID = "{PIPELINE ID}",
+    EnchancedRefreshTestID = "{REFRESH TEST ID}",
 
-    GetApps = Source{[Key="GetApps"]}[Data],
-    GetAppsResult = GetApps(),    
+    // Extracts Function from group
+    _GetFunction = (_func_key as text) =>
+        let
+            Result = try Source{[Key=_func_key]}[Data] otherwise "Not a function"
+        in
+            Result,
+    // Define functions
+    GetApp  = _GetFunction("GetApp"),
+    GetApps = _GetFunction("GetApps"),
+    GetDashboardInApp = _GetFunction("GetDashboardInApp"),
+    GetDashboardsInApp = _GetFunction("GetDashboardsInApp"),
+    GetReportInApp = _GetFunction("GetReportInApp"),
+    GetReportsInApp = _GetFunction("GetReportsInApp"),
+    GetDatasetInGroup = _GetFunction("GetDatasetInGroup"),
+    GetDatasetToDataflowsLinksInGroup = _GetFunction("GetDatasetToDataflowsLinksInGroup"),
+    GetDatasetUsersInGroup = _GetFunction("GetDatasetUsersInGroup"),
+    GetDatasetsInGroup = _GetFunction("GetDatasetsInGroup"),
+    GetDatasetDatasourcesInGroup = _GetFunction("GetDatasetDatasourcesInGroup"),
+    GetDatasetDirectQueryRefreshScheduleInGroup = _GetFunction("GetDatasetDirectQueryRefreshScheduleInGroup"),
+    GetDatasetParametersInGroup = _GetFunction("GetDatasetParametersInGroup"),
+    GetDatasetRefreshExecutionDetailsInGroup = _GetFunction("GetDatasetRefreshExecutionDetailsInGroup"),
+    GetDatasetRefreshHistoryInGroup = _GetFunction("GetDatasetRefreshHistoryInGroup"),
+    GetDatasetRefreshScheduleInGroup = _GetFunction("GetDatasetRefreshScheduleInGroup"),
+    ExecuteQuery = _GetFunction("ExecuteQuery"),
+    ExecuteQueryInGroup = _GetFunction("ExecuteQueryInGroup"),
+    GetReportPageInGroup = _GetFunction("GetReportPageInGroup"),
+    GetReportPagesInGroup = _GetFunction("GetReportPagesInGroup"),
+    GetReportInGroup = _GetFunction("GetReportInGroup"),
+    GetReportsInGroup = _GetFunction("GetReportsInGroup"),
+    GetGroupUsers = _GetFunction("GetGroupUsers"),
+    GetGroups = _GetFunction("GetGroups"),
+    GetPipeline = _GetFunction("GetPipeline"),
+    GetPipelineOperation = _GetFunction("GetPipelineOperation"),
+    GetPipelineOperations = _GetFunction("GetPipelineOperations"),
+    GetPipelineStageArtifacts = _GetFunction("GetPipelineStageArtifacts"),    
+    GetPipelineStages = _GetFunction("GetPipelineStages"),
+    GetPipelineUsers = _GetFunction("GetPipelineUsers"),
+    GetPipelines = _GetFunction("GetPipelines"),
 
-    /* Datasets */
-    GetDatasetsInGroup = Source{[Key="GetDatasetsInGroup"]}[Data],
-    GetDatasetsInGroupResult = GetDatasetsInGroup(GroupTestID),
-    DatasetsJson = Json.Document(GetDatasetsInGroupResult)[value],
-    DatasetsTable = Table.FromList(ReportsJson, Splitter.SplitByNothing(), null, null, ExtraValues.Error),
-    Datasets = Table.ExpandRecordColumn(ReportsTable, "Column1", {"id"}, {"Dataset ID"}),
+    // Fact(<Name of the Test>, <Expected Value>, <Actual Value>)
+    // <Expected Value> and <Actual Value> can be a literal or let statement   
+    facts =
+    {        
+        /* GetApp */
+        Fact("GetApp Should Be a Function",
+             true,
+             Value.Is(GetApp,Function.Type)
+        ),
+        Fact("GetApp Should Return Correct Metadata",
+             "apps/$entity",
+             Text.AfterDelimiter(Json.Document(GetApp(AppTestID))[#"@odata.context"],"#")
+        ),
+        Fact("GetApp Should Return AppTestID",
+            AppTestID,
+            Json.Document(GetApp(AppTestID))[id]
+        ),
+        /* GetApps */        
+        Fact("GetApps Should Be a Function",
+             true,
+             Value.Is(GetApps,Function.Type)
+        ),
+        Fact("GetApps Should Return Correct Metadata",
+             "apps",
+             Text.AfterDelimiter(Json.Document(GetApps())[#"@odata.context"],"#")
+        ),
+        Fact("GetApps Should Return More Than One Record",
+             true,
+             List.Count(Json.Document(GetApps())[value]) > 0
+        ),
+        /* GetDashboardInApp */
+        Fact("GetDashboardInApp Should Be a Function",
+             true,
+             Value.Is(GetDashboardInApp,Function.Type)
+        ),
+        /* GetDashboardsInApp */
+        Fact("GetDashboardsInApp Should Be a Function",
+             true,
+             Value.Is(GetDashboardsInApp,Function.Type)
+        ),
+        /* GetDashboardsInApp */
+        Fact("GetDashboardsInApp Should Be a Function",
+             true,
+             Value.Is(GetDashboardsInApp,Function.Type)
+        ),
+        /* GetReportInApp */
+        Fact("GetReportInApp Should Be a Function",
+             true,
+             Value.Is(GetReportInApp,Function.Type)
+        ),
+        /* GetReportsInApp */
+        Fact("GetReportsInApp Should Be a Function",
+             true,
+             Value.Is(GetReportsInApp,Function.Type)
+        ),
+        /* GetDatasetInGroup */
+        Fact("GetDatasetInGroup Should Be a Function",
+             true,
+             Value.Is(GetDatasetInGroup,Function.Type)
+        ),
+        Fact("GetDatasetInGroup Should Be Correct Metadata",
+             "datasets/$entity",
+             Text.AfterDelimiter(Json.Document(GetDatasetInGroup(GroupTestID,DatasetTestID))[#"@odata.context"],"#")
+        ),        
+        /* GetDatasetToDataflowsLinksInGroup */
+        Fact("GetDatasetToDataflowsLinksInGroup Should Be a Function",
+             true,
+             Value.Is(GetDatasetToDataflowsLinksInGroup,Function.Type)
+        ),
+        Fact("GetDatasetToDataflowsLinksInGroup Should Be Correct Metadata",
+             "Collection(Microsoft.PowerBI.ServiceContracts.Api.DatasetToDataflowLinkResponse)",
+             Text.AfterDelimiter(Json.Document(GetDatasetToDataflowsLinksInGroup(GroupTestID))[#"@odata.context"],"#")
+        ),
+        /* GetDatasetUsersInGroup*/
+        Fact("GetDatasetUsersInGroup Should Be a Function",
+             true,
+             Value.Is(GetDatasetUsersInGroup,Function.Type)
+        ),
+        Fact("GetDatasetUsersInGroup Should Be Correct Metadata",
+             "Collection(Microsoft.PowerBI.ServiceContracts.Api.Access.DatasetUser)",
+             Text.AfterDelimiter(Json.Document(GetDatasetUsersInGroup(GroupTestID,DatasetTestID))[#"@odata.context"],"#")
+        ), 
+        Fact("GetDatasetUsersInGroup Should at least 1 user",
+             true,
+             List.Count(Json.Document(GetDatasetUsersInGroup(GroupTestID,DatasetTestID))[value]) > 0
+        ),         
+        /* GetDatasetsInGroup */
+        Fact("GetDatasetsInGroup Should Be a Function",
+             true,
+             Value.Is(GetDatasetsInGroup,Function.Type)
+        ),
+        Fact("GetDatasetsInGroup Should Be Correct Metadata",
+             "datasets",
+             Text.AfterDelimiter(Json.Document(GetDatasetsInGroup(GroupTestID))[#"@odata.context"],"#")
+        ),          
+        /* GetDatasetDatasourcesInGroup */
+        Fact("GetDatasetDatasourcesInGroup Should Be a Function",
+             true,
+             Value.Is(GetDatasetDatasourcesInGroup,Function.Type)
+        ),
+        Fact("GetDatasetDatasourcesInGroup Should Be Correct Metadata",
+             "datasources",
+             Text.AfterDelimiter(Json.Document(GetDatasetDatasourcesInGroup(GroupTestID,DatasetTestID))[#"@odata.context"],"#")
+        ),
+        /* GetDatasetDirectQueryRefreshScheduleInGroup */
+        Fact("GetDatasetDirectQueryRefreshScheduleInGroup Should Be a Function",
+             true,
+             Value.Is(GetDatasetDirectQueryRefreshScheduleInGroup,Function.Type)
+        ),
+        /*Fact("GetDatasetDirectQueryRefreshScheduleInGroup Should Be Correct Metadata",
+             "datasources",
+             Text.AfterDelimiter(Json.Document(GetDatasetDirectQueryRefreshScheduleInGroup(GroupTestID,DatasetTestID))[#"@odata.context"],"#")
+        ),*/
+        /* GetDatasetParametersInGroup */
+        Fact("GetDatasetParametersInGroup Should Be a Function",
+             true,
+             Value.Is(GetDatasetParametersInGroup,Function.Type)
+        ),
+        Fact("GetDatasetParametersInGroup Should Be Correct Metadata",
+             "parameters",
+             Text.AfterDelimiter(Json.Document(GetDatasetParametersInGroup(GroupTestID,DatasetTestID))[#"@odata.context"],"#")
+        ),                
+        /* GetDatasetRefreshExecutionDetailsInGroup */
+        Fact("GetDatasetRefreshExecutionDetailsInGroup Should Be a Function",
+             true,
+             Value.Is(GetDatasetRefreshExecutionDetailsInGroup,Function.Type)
+        ),  
+        /* Assumes a refresh exists that was enhanced for this dataset */
+        Fact("GetDatasetRefreshExecutionDetailsInGroup Should Have One Object Return with Completed Status",
+             "Completed",
+             Json.Document(GetDatasetRefreshExecutionDetailsInGroup(GroupTestID, DatasetTestID, EnchancedRefreshTestID))[extendedStatus]
+        ),         
+        /* GetDatasetRefreshHistoryInGroup*/  
+        Fact("GetDatasetRefreshHistoryInGroup Should Be a Function",
+             true,
+             Value.Is(GetDatasetRefreshHistoryInGroup,Function.Type)
+        ),  
+        Fact("GetDatasetRefreshHistoryInGroup Should Be Correct Metadata",
+             "refreshes",
+             Text.AfterDelimiter(Json.Document(GetDatasetRefreshHistoryInGroup(GroupTestID, DatasetTestID))[#"@odata.context"],"#")
+        ),             
+        /* GetDatasetRefreshScheduleInGroup */            
+        Fact("GetDatasetRefreshScheduleInGroup Should Be a Function",
+             true,
+             Value.Is(GetDatasetRefreshScheduleInGroup,Function.Type)
+        ),
+        Fact("GetDatasetRefreshScheduleInGroup Should Be Correct Metadata",
+             "Microsoft.PowerBI.ServiceContracts.Api.V1.RefreshSchedule",
+             Text.AfterDelimiter(Json.Document(GetDatasetRefreshScheduleInGroup(GroupTestID, DatasetTestID))[#"@odata.context"],"#")
+        ),        
+        /* ExecuteQuery */            
+        Fact("ExecuteQuery Should Be a Function",
+             true,
+             Value.Is(ExecuteQuery,Function.Type)
+        ),
+        /* ExecuteQueryInGroup */            
+        Fact("ExecuteQueryInGroup Should Be a Function",
+             true,
+             Value.Is(ExecuteQueryInGroup,Function.Type)
+        ),
+        /* GetReportPageInGroup */            
+        Fact("GetReportPageInGroup Should Be a Function",
+             true,
+             Value.Is(GetReportPageInGroup,Function.Type)
+        ),
+        Fact("GetReportPageInGroup Should Be Correct Metadata",
+             "pages/$entity",
+             Text.AfterDelimiter(Json.Document(GetReportPageInGroup(GroupTestID,ReportTestID,"ReportSection"))[#"@odata.context"],"#")
+        ),
+        /* GetReportPagesInGroup */            
+        Fact("GetReportPagesInGroup Should Be a Function",
+             true,
+             Value.Is(GetReportPagesInGroup,Function.Type)
+        ),
+        Fact("GetReportPagesInGroup Should Be Correct Metadata",
+             "pages",
+             Text.AfterDelimiter(Json.Document(GetReportPagesInGroup(GroupTestID,ReportTestID))[#"@odata.context"],"#")
+        ),
+        Fact("GetReportPagesInGroup Should Have 2 Pages",
+             2,
+             List.Count(Json.Document(GetReportPagesInGroup(GroupTestID,ReportTestID))[value])
+        ),                 
+        /* GetReportInGroup */            
+        Fact("GetReportInGroup Should Be a Function",
+             true,
+             Value.Is(GetReportInGroup,Function.Type)
+        ),
+        Fact("GetReportInGroup Should Be Correct Metadata",
+             "reports/$entity",
+             Text.AfterDelimiter(Json.Document(GetReportInGroup(GroupTestID,ReportTestID))[#"@odata.context"],"#")
+        ),
+        Fact("GetReportInGroup Should Have More Than 0 Reports",
+             ReportTestName,
+             Json.Document(GetReportInGroup(GroupTestID,ReportTestID))[name]
+        ), 
+        /* GetReportsInGroup */            
+        Fact("GetReportsInGroup Should Be a Function",
+             true,
+             Value.Is(GetReportsInGroup,Function.Type)
+        ),
+        Fact("GetReportsInGroup Should Be Correct Metadata",
+             "reports",
+             Text.AfterDelimiter(Json.Document(GetReportsInGroup(GroupTestID))[#"@odata.context"],"#")
+        ),
+        Fact("GetReportsInGroup Should Have More Than 0 Reports",
+             true,
+             List.Count(Json.Document(GetReportsInGroup(GroupTestID))[value]) > 0
+        ),                  
+        /* GetGroupUsers */            
+        Fact("GetGroupUsers Should Be a Function",
+             true,
+             Value.Is(GetGroupUsers,Function.Type)
+        ),
+        Fact("GetGroupUsers Should Be Correct Metadata",
+             "users",
+             Text.AfterDelimiter(Json.Document(GetGroupUsers(GroupTestID))[#"@odata.context"],"#")
+        ),
+        Fact("GetGroupUsers Should Have More Than 0 Users",
+             true,
+             List.Count(Json.Document(GetGroupUsers(GroupTestID))[value]) > 0
+        ),                 
+        /* GetGroups */            
+        Fact("GetGroups Should Be a Function",
+             true,
+             Value.Is(GetGroups,Function.Type)
+        ),
+        Fact("GetGroups Should Be Correct Metadata",
+             "groups",
+             Text.AfterDelimiter(Json.Document(GetGroups())[#"@odata.context"],"#")
+        ),
+        Fact("GetGroups with filter should return the right workspace",
+             GroupTestID,
+             Json.Document(GetGroups(GroupNameFilter))[value]{0}[id]
+        ),
+        /* GetPipeline */
+        Fact("GetPipeline Should Be a Function",
+             true,
+             Value.Is(GetPipeline,Function.Type)
+        ),
+        Fact("GetPipeline Should Be Correct Metadata",
+             "pipelines/$entity",
+             Text.AfterDelimiter(Json.Document(GetPipeline(PipelineTestID))[#"@odata.context"],"#")
+        ),
+        /* GetPipelineOperation */
+        Fact("GetPipelineOperation Should Be a Function",
+             true,
+             Value.Is(GetPipelineOperation,Function.Type)
+        ),
+        /* GetPipelineOperations */
+        Fact("GetPipelineOperations Should Be a Function",
+             true,
+             Value.Is(GetPipelineOperations,Function.Type)
+        ),
+        Fact("GetPipelineOperations Should Be Correct Metadata",
+             "operations",
+             Text.AfterDelimiter(Json.Document(GetPipelineOperations(PipelineTestID))[#"@odata.context"],"#")
+        ),
+        /* GetPipelineStageArtifacts */
+        Fact("GetPipelineStageArtifacts Should Be a Function",
+             true,
+             Value.Is(GetPipelineStageArtifacts,Function.Type)
+        ),
+        Fact("GetPipelineStageArtifacts Should Be Correct Metadata",
+             "Microsoft.PowerBI.ServiceContracts.Api.PipelineStageArtifacts",
+             Text.AfterDelimiter(Json.Document(GetPipelineStageArtifacts(PipelineTestID,0))[#"@odata.context"],"#")
+        ),
+        Fact("GetPipelineStageArtifacts Should Error if Stage Order Not 0, 1, or 2",
+             true,
+             /* If table and not json, we know the error message is returned */
+             Value.Is(GetPipelineStageArtifacts(PipelineTestID,3),Table.Type)
+        ),
+        /* GetPipelineStages */
+        Fact("GetPipelineStages Should Be a Function",
+             true,
+             Value.Is(GetPipelineStages,Function.Type)
+        ),
+        Fact("GetPipelineStages Should Be Correct Metadata",
+             "Collection(Microsoft.PowerBI.ServiceContracts.Api.PipelineStage)",
+             Text.AfterDelimiter(Json.Document(GetPipelineStages(PipelineTestID))[#"@odata.context"],"#")
+        ),
+        /* GetPipelineUsers */
+        Fact("GetPipelineUsers Should Be a Function",
+             true,
+             Value.Is(GetPipelineUsers,Function.Type)
+        ),
+        Fact("GetPipelineUsers Should Be Correct Metadata",
+             "Collection(Microsoft.PowerBI.ServiceContracts.Api.PipelineAccessRightEntry)",
+             Text.AfterDelimiter(Json.Document(GetPipelineUsers(PipelineTestID))[#"@odata.context"],"#")
+        ),
+        Fact("GetPipelineUsers Should Have At Least 1 User",
+             true,
+             List.Count(Json.Document(GetPipelineUsers(PipelineTestID))[value]) > 0
+        ),
+        /* GetPipelines */
+        Fact("GetPipelines Should Be a Function",
+             true,
+             Value.Is(GetPipelines,Function.Type)
+        ),
+        Fact("GetPipelines Should Be Correct Metadata",
+             "pipelines",
+             Text.AfterDelimiter(Json.Document(GetPipelines())[#"@odata.context"],"#")
+        )                            
+    },
+    results = Table.ReverseRows(Table.FromRecords(facts)),
+    // Only return failed tests
+    results2 = Table.SelectRows(results, each Text.StartsWith([Result],"F")) 
+][results2];
 
-    ExecuteQuery = Source{[Key="ExecuteQuery"]}[Data],
-    Result2 = ExecuteQuery(DatasetTestID, Query, null),
+/// COMMON UNIT TESTING CODE 
+Fact = (_subject as text, _expected, _actual) as record =>
+[   expected = try _expected,
+    safeExpected = if expected[HasError] then "Expected : "& @ValueToText(expected[Error]) else expected[Value],
+    actual = try _actual,
+    safeActual = if actual[HasError] then "Actual : "& @ValueToText(actual[Error]) else actual[Value],
+    attempt = try safeExpected = safeActual,
+    result = if attempt[HasError] or not attempt[Value] then "Failure ⛔" else "Success ✓",
+    resultOp = if result = "Success ✓" then " = " else " <> ",
+    addendumEvalAttempt = if attempt[HasError] then @ValueToText(attempt[Error]) else "",
+    addendumEvalExpected = try @ValueToText(safeExpected) otherwise "...",
+    addendumEvalActual = try @ValueToText (safeActual) otherwise "...",
+    fact =
+    [   Result = result &" "& addendumEvalAttempt,
+        Notes =_subject,
+        Details = " ("& addendumEvalExpected & resultOp & addendumEvalActual &")"
+    ]
+][fact];
 
-    RefreshScheduleForDataset = Source{[Key="RefreshScheduleForDataset"]}[Data],
-    Result3 = RefreshScheduleForDataset(GroupTestID,DatasetTestID),    
+Facts = (_subject as text, _predicates as list) => List.Transform(_predicates, each Fact(_subject,_{0},_{1}));
 
-    /* Reports */
-    GetReportsInGroup = Source{[Key="GetReportsInGroup"]}[Data],
-    GetReportsInGroupResult = GetReportsInGroup(GroupTestID),
-    ReportsJson = Json.Document(GetReportsInGroupResult)[value],
-    ReportsTable = Table.FromList(ReportsJson, Splitter.SplitByNothing(), null, null, ExtraValues.Error),
-    Reports = Table.ExpandRecordColumn(ReportsTable, "Column1", {"id"}, {"ReportID"}),
-    ReportsTest = Table.UnpivotOtherColumns(Reports,{},"Attribute","Value"),
+Facts.Summarize = (_facts as list) as table =>
+[   Fact.CountSuccesses = (count, i) =>
+    [   result = try i[Result],
+        sum = if result[HasError] or not Text.StartsWith(result[Value], "Success") then count else count + 1
+    ][sum],
+    passed = List.Accumulate(_facts, 0, Fact.CountSuccesses),
+    total = List.Count(_facts),
+    format = if passed = total then "All #{0} Passed !!! ✓" else "#{0} Passed ☺  #{1} Failed ☹",
+    result = if passed = total then "Success" else "⛔",
+    rate = Number.IntegerDivide(100*passed, total),
+    header =
+    [   Result = result,
+        Notes = Text.Format(format, {passed, total-passed}),
+        Details = Text.Format("#{0}% success rate", {rate})
+    ],
+    report = Table.FromRecords(List.Combine({{header},_facts}))
+][report];
 
-    /* Workspaces */
-    GetGroups = Source{[Key="GetGroups"]}[Data],
-    GetGroupsResult = GetGroups(null,null,null),
-    GroupsJson = Json.Document(GetGroupsResult)[value],
-    GroupsTable = Table.FromList(GroupsJson, Splitter.SplitByNothing(), null, null, ExtraValues.Error),
-    Groups = Table.ExpandRecordColumn(GroupsTable, "Column1", {"id","name"}, {"Workspace ID","Name"})
+ValueToText = (value, optional depth) =>
+    let
+        List.TransformAndCombine = (list, transform, separator) => Text.Combine(List.Transform(list, transform), separator),
 
-in
-    Source
+        Serialize.Binary =      (x) => "#binary(" & Serialize(Binary.ToList(x)) & ") ",
+
+        Serialize.Function =    (x) => _serialize_function_param_type(
+                                          Type.FunctionParameters(Value.Type(x)),
+                                          Type.FunctionRequiredParameters(Value.Type(x)) ) &
+                                       " as " &
+                                       _serialize_function_return_type(Value.Type(x)) &
+                                       " => (...) ",
+
+        Serialize.List =        (x) => "{" & List.TransformAndCombine(x, Serialize, ", ") & "} ",
+
+        Serialize.Record =      (x) => "[ " &
+                                       List.TransformAndCombine(
+                                            Record.FieldNames(x), 
+                                            (item) => Serialize.Identifier(item) & " = " & Serialize(Record.Field(x, item)),
+                                            ", ") &
+                                       " ] ",
+
+        Serialize.Table =       (x) => "#table( type " &
+                                        _serialize_table_type(Value.Type(x)) &
+                                        ", " &
+                                        Serialize(Table.ToRows(x)) &
+                                        ") ",
+                                    
+        Serialize.Identifier =  Expression.Identifier,
+
+        Serialize.Type =        (x) => "type " & _serialize_typename(x),
+                                    
+                             
+        _serialize_typename =    (x, optional funtype as logical) =>                        /* Optional parameter: Is this being used as part of a function signature? */
+                                    let
+                                        isFunctionType = (x as type) => try if Type.FunctionReturn(x) is type then true else false otherwise false,
+                                        isTableType = (x as type) =>  try if Type.TableSchema(x) is table then true else false otherwise false,
+                                        isRecordType = (x as type) => try if Type.ClosedRecord(x) is type then true else false otherwise false,
+                                        isListType = (x as type) => try if Type.ListItem(x) is type then true else false otherwise false
+                                    in
+                                
+                                        if funtype=null and isTableType(x) then _serialize_table_type(x) else
+                                        if funtype=null and isListType(x) then "{ " & @_serialize_typename( Type.ListItem(x) ) & " }" else
+                                        if funtype=null and isFunctionType(x) then "function " & _serialize_function_type(x) else
+                                        if funtype=null and isRecordType(x) then _serialize_record_type(x) else
+                                    
+                                        if x = type any then "any" else
+                                        let base = Type.NonNullable(x) in
+                                          (if Type.IsNullable(x) then "nullable " else "") &       
+                                          (if base = type anynonnull then "anynonnull" else                
+                                          if base = type binary then "binary" else                
+                                          if base = type date   then "date"   else
+                                          if base = type datetime then "datetime" else
+                                          if base = type datetimezone then "datetimezone" else
+                                          if base = type duration then "duration" else
+                                          if base = type logical then "logical" else
+                                          if base = type none then "none" else
+                                          if base = type null then "null" else
+                                          if base = type number then "number" else
+                                          if base = type text then "text" else 
+                                          if base = type time then "time" else 
+                                          if base = type type then "type" else 
+                                      
+                                          /* Abstract types: */
+                                          if base = type function then "function" else
+                                          if base = type table then "table" else
+                                          if base = type record then "record" else
+                                          if base = type list then "list" else
+                                      
+                                          "any /*Actually unknown type*/"),
+
+        _serialize_table_type =     (x) => 
+                                           let 
+                                             schema = Type.TableSchema(x)
+                                           in
+                                             "table " &
+                                             (if Table.IsEmpty(schema) then "" else 
+                                                 "[" & List.TransformAndCombine(
+                                                     Table.ToRecords(Table.Sort(schema,"Position")),
+                                                     each Serialize.Identifier(_[Name]) & " = " & _[Kind],
+                                                     ", ") &
+                                                 "] "),
+
+        _serialize_record_type =    (x) => 
+                                            let flds = Type.RecordFields(x)
+                                            in
+                                                if Record.FieldCount(flds)=0 then "record" else
+                                                    "[" & List.TransformAndCombine(
+                                                        Record.FieldNames(flds),
+                                                        (item) => Serialize.Identifier(item) & "=" & _serialize_typename(Record.Field(flds,item)[Type]),
+                                                        ", ") & 
+                                                    (if Type.IsOpenRecord(x) then ", ..." else "") &
+                                                    "]",
+
+        _serialize_function_type =  (x) => _serialize_function_param_type(
+                                              Type.FunctionParameters(x),
+                                              Type.FunctionRequiredParameters(x) ) &
+                                            " as " &
+                                            _serialize_function_return_type(x),
+    
+        _serialize_function_param_type = (t,n) => 
+                                let
+                                    funsig = Table.ToRecords(
+                                        Table.TransformColumns(
+                                            Table.AddIndexColumn( Record.ToTable( t ), "isOptional", 1 ),
+                                            { "isOptional", (x)=> x>n } ) )
+                                in
+                                    "(" & 
+                                    List.TransformAndCombine(
+                                        funsig,
+                                        (item)=>
+                                            (if item[isOptional] then "optional " else "") &
+                                            Serialize.Identifier(item[Name]) & " as " & _serialize_typename(item[Value], true),
+                                        ", ") &
+                                     ")",
+
+        _serialize_function_return_type = (x) => _serialize_typename(Type.FunctionReturn(x), true), 
+
+        Serialize = (x) as text => 
+                           if x is binary       then try Serialize.Binary(x) otherwise "null /*serialize failed*/"        else 
+                           if x is date         then try Expression.Constant(x) otherwise "null /*serialize failed*/"     else 
+                           if x is datetime     then try Expression.Constant(x) otherwise "null /*serialize failed*/"     else 
+                           if x is datetimezone then try Expression.Constant(x) otherwise "null /*serialize failed*/"     else 
+                           if x is duration     then try Expression.Constant(x) otherwise "null /*serialize failed*/"     else 
+                           if x is function     then try Serialize.Function(x) otherwise "null /*serialize failed*/"      else 
+                           if x is list         then try Serialize.List(x) otherwise "null /*serialize failed*/"          else 
+                           if x is logical      then try Expression.Constant(x) otherwise "null /*serialize failed*/"     else
+                           if x is null         then try Expression.Constant(x) otherwise "null /*serialize failed*/"     else
+                           if x is number       then try Expression.Constant(x) otherwise "null /*serialize failed*/"     else
+                           if x is record       then try Serialize.Record(x) otherwise "null /*serialize failed*/"        else 
+                           if x is table        then try Serialize.Table(x) otherwise "null /*serialize failed*/"         else 
+                           if x is text         then try Expression.Constant(x) otherwise "null /*serialize failed*/"     else 
+                           if x is time         then try Expression.Constant(x) otherwise "null /*serialize failed*/"     else 
+                           if x is type         then try Serialize.Type(x) otherwise "null /*serialize failed*/"          else 
+                           "[#_unable_to_serialize_#]"                     
+    in
+        try Serialize(value) otherwise "<serialization failed>";
