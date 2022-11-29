@@ -5,7 +5,7 @@ shared MyExtension.UnitTest =
     // Put any common variables here if you only want them to be evaluated once
     Source = NavigationTable.Simple(),
     
-    /*Variables*/
+    /*Variables*/ 
     AppTestID = "{APP ID}",
     GroupTestID = "{GROUP ID}",
     GroupNameFilter = "name eq 'Custom Connector Test'",
@@ -28,6 +28,7 @@ shared MyExtension.UnitTest =
     GetDashboardsInApp = _GetFunction("GetDashboardsInApp"),
     GetReportInApp = _GetFunction("GetReportInApp"),
     GetReportsInApp = _GetFunction("GetReportsInApp"),
+    GetDatasetDiscoverGatewaysInGroup = _GetFunction("GetDatasetDiscoverGatewaysInGroup"),
     GetDatasetInGroup = _GetFunction("GetDatasetInGroup"),
     GetDatasetToDataflowsLinksInGroup = _GetFunction("GetDatasetToDataflowsLinksInGroup"),
     GetDatasetUsersInGroup = _GetFunction("GetDatasetUsersInGroup"),
@@ -109,6 +110,15 @@ shared MyExtension.UnitTest =
              true,
              Value.Is(GetReportsInApp,Function.Type)
         ),
+        /* GetDatasetDiscoverGatewaysInGroup */
+        Fact("GetDatasetDiscoverGatewaysInGroup Should Be a Function",
+             true,
+             Value.Is(GetDatasetDiscoverGatewaysInGroup,Function.Type)
+        ),
+        Fact("GetDatasetDiscoverGatewaysInGroup Should Be Correct Metadata",
+             "gateways",
+             Text.AfterDelimiter(Json.Document(GetDatasetDiscoverGatewaysInGroup(GroupTestID,DatasetTestID))[#"@odata.context"],"#")
+        ),        
         /* GetDatasetInGroup */
         Fact("GetDatasetInGroup Should Be a Function",
              true,

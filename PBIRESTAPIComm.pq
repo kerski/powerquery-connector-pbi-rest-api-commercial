@@ -30,6 +30,7 @@ let
             {"GetReportInApp","GetReportInApp",PBIRESTAPIComm.GetReportInApp,"Function","GetReportInApp",true},
             {"GetReportsInApp","GetReportsInApp",PBIRESTAPIComm.GetReportsInApp,"Function","GetReportsInApp",true},                      
             /* Datasets */
+            {"GetDatasetDiscoverGatewaysInGroup","GetDatasetDiscoverGatewaysInGroup",PBIRESTAPIComm.GetDatasetDiscoverGatewaysInGroup,"Function","GetDatasetDiscoverGatewaysInGroup",true},            
             {"GetDatasetInGroup","GetDatasetInGroup",PBIRESTAPIComm.GetDatasetInGroup,"Function","GetDatasetInGroup",true},
             {"GetDatasetToDataflowsLinksInGroup","GetDatasetToDataflowsLinksInGroup",PBIRESTAPIComm.GetDatasetToDataflowsLinksInGroup,"Function","GetDatasetToDataflowsLinksInGroup",true},
             {"GetDatasetUsersInGroup","GetDatasetUsersInGroup",PBIRESTAPIComm.GetDatasetUsersInGroup,"Function","GetDatasetUsersInGroup",true},
@@ -292,6 +293,49 @@ GetReportsInApp = (optional appId as text) =>
 /*****************
     Datasets
 *****************/
+
+/*** GetDatasetDiscoverGatewaysInGroup***/
+shared PBIRESTAPIComm.GetDatasetDiscoverGatewaysInGroup = Value.ReplaceType(
+    GetDatasetDiscoverGatewaysInGroup,
+    GetDatasetDiscoverGatewaysInGroupType
+);
+
+GetDatasetDiscoverGatewaysInGroupType = type function (
+    optional groupdId as (
+        type text meta [
+            Documentation.FieldCaption = "Group ID",
+            Documentation.FieldDescription = "The workspace ID",
+            Documentation.SampleValues = {
+                "xxx-xxxx-yyxa..."
+            }
+        ]
+    ),
+    optional datasetId as (
+        type text meta [
+            Documentation.FieldCaption = "Dataset ID",
+            Documentation.FieldDescription = "The Dataset ID",
+            Documentation.SampleValues = {
+                "xxx-xxxx-yyxb..."
+            }
+        ]
+    )    
+) as table meta [
+    Documentation.Name = "PBIRESTAPIComm.GetDatasetDiscoverGatewaysInGroup",
+    Documentation.LongDescription = "Returns a list of gateways that the specified dataset from the specified workspace can be bound to. This API call is only relevant to datasets that have at least one on-premises connection. For datasets with cloud-only connections, this API call returns an empty list.",
+    Documentation.Examples = {
+        [
+            Code = "=PBIRESTAPIComm.GetDatasetDiscoverGatewaysInGroup(""xxx-xxxx-yyxa..."",""xxx-xxxx-yyxb..."")",
+            Result = "Defined as https://learn.microsoft.com/en-us/rest/api/power-bi/datasets/discover-gateways-in-group#gateways"
+        ]
+    }
+];
+
+GetDatasetDiscoverGatewaysInGroup = (optional groupdId as text, optional datasetId as text) =>
+    let
+        result = GetJSON("v1.0/myorg/groups/" & groupdId & "/datasets/" & datasetId & "/Default.DiscoverGateways")
+    in
+        result;
+/*** End GetDatasetDiscoverGatewaysInGroup***/
 
 /*** GetDatasetInGroup***/
 shared PBIRESTAPIComm.GetDatasetInGroup = Value.ReplaceType(
