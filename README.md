@@ -151,7 +151,7 @@ The custom data connector will need to be installed in the a Power BI Gateway in
 
 In order to the compile the custom data connector to the .mez file, please follow these instructions:
 
-1. Using your keyboard, use the shorcut Ctrl+Shift+B.  Visual Studio will prompt you within the command palette to choose a build task. Select the "build: Build connector project using MakePQX".
+1. Using your keyboard, use the shortcut Ctrl+Shift+B.  Visual Studio will prompt you within the command palette to choose a build task. Select the "build: Build connector project using MakePQX".
 
 ![Build](./documentation/images/build-mez.png)
 
