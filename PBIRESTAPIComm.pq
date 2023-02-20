@@ -9,7 +9,7 @@
     custom connector.  For more information on installing a custom data connector with a gateway
     please see: https://learn.microsoft.com/en-us/power-bi/connect-data/service-gateway-custom-connectors .
 */
-[Version = "1.1.0"]
+[Version = "1.2.0"]
 section PBIRESTAPIComm;
 [
     DataSource.Kind = "PBIRESTAPIComm",
@@ -18,7 +18,7 @@ section PBIRESTAPIComm;
 /*****************
     Navigation Table
 *****************/
-shared NavigationTable.Simple = () =>
+shared PBIRESTAPIComm.FunctionCatalog = () =>
 let
 	objects = #table(
             {"Name","Key","Data","ItemKind","ItemName","IsLeaf"},{
@@ -29,6 +29,19 @@ let
             {"GetDashboardsInApp","GetDashboardsInApp",PBIRESTAPIComm.GetDashboardsInApp,"Function","GetDashboardsInApp",true},  
             {"GetReportInApp","GetReportInApp",PBIRESTAPIComm.GetReportInApp,"Function","GetReportInApp",true},
             {"GetReportsInApp","GetReportsInApp",PBIRESTAPIComm.GetReportsInApp,"Function","GetReportsInApp",true},                      
+            {"GetDashboardTileInApp","GetDashboardTileInApp",PBIRESTAPIComm.GetDashboardTileInApp,"Function","GetDashboardTileInApp",true},                      
+            {"GetDashboardTilesInApp","GetDashboardTilesInApp",PBIRESTAPIComm.GetDashboardTilesInApp,"Function","GetDashboardTilesInApp",true},                      
+            /* Dashboards */
+            {"GetDashboardInGroup","GetDashboardInGroup",PBIRESTAPIComm.GetDashboardInGroup,"Function","GetDashboardInGroup",true},                      
+            {"GetDashboardsInGroup","GetDashboardsInGroup",PBIRESTAPIComm.GetDashboardsInGroup,"Function","GetDashboardsInGroup",true},                      
+            {"GetDashboardTileInGroup","GetDashboardTileInGroup",PBIRESTAPIComm.GetDashboardTileInGroup,"Function","GetDashboardTileInGroup",true},                      
+            {"GetDashboardTilesInGroup","GetDashboardTilesInGroup",PBIRESTAPIComm.GetDashboardTilesInGroup,"Function","GetDashboardTilesInGroup",true},                      
+            /* Dataflows */
+            {"GetDataflowInGroup","GetDataflowInGroup",PBIRESTAPIComm.GetDataflowInGroup,"Function","GetDataflowInGroup",true},            
+            {"GetDataflowDataSourcesInGroup","GetDataflowDataSourcesInGroup",PBIRESTAPIComm.GetDataflowDataSourcesInGroup,"Function","GetDataflowDataSourcesInGroup",true},            
+            {"GetDataflowTransactionsInGroup","GetDataflowTransactionsInGroup",PBIRESTAPIComm.GetDataflowTransactionsInGroup,"Function","GetDataflowTransactionsInGroup",true},            
+            {"GetDataflowsInGroup","GetDataflowsInGroup",PBIRESTAPIComm.GetDataflowsInGroup,"Function","GetDataflowsInGroup",true},            
+            {"GetUpstreamDataflowsInGroup","GetUpstreamDataflowsInGroup",PBIRESTAPIComm.GetUpstreamDataflowsInGroup,"Function","GetUpstreamDataflowsInGroup",true},                                    
             /* Datasets */
             {"GetDatasetDiscoverGatewaysInGroup","GetDatasetDiscoverGatewaysInGroup",PBIRESTAPIComm.GetDatasetDiscoverGatewaysInGroup,"Function","GetDatasetDiscoverGatewaysInGroup",true},            
             {"GetDatasetInGroup","GetDatasetInGroup",PBIRESTAPIComm.GetDatasetInGroup,"Function","GetDatasetInGroup",true},
@@ -48,6 +61,15 @@ let
             {"GetReportPagesInGroup","GetReportPagesInGroup",PBIRESTAPIComm.GetReportPagesInGroup,"Function","GetReportPagesInGroup",true},
             {"GetReportInGroup","GetReportInGroup",PBIRESTAPIComm.GetReportInGroup,"Function","GetReportInGroup",true},
             {"GetReportsInGroup","GetReportsInGroup",PBIRESTAPIComm.GetReportsInGroup,"Function","GetReportsInGroup",true},
+            /* Goal Values */            
+            {"GetScorecardGoalValuesInGroup","GetScorecardGoalValuesInGroup",PBIRESTAPIComm.GetScorecardGoalValuesInGroup,"Function","GetScorecardGoalValuesInGroup",true},
+            {"GetScorecardGoalValueInGroup","GetScorecardGoalValueInGroup",PBIRESTAPIComm.GetScorecardGoalValueInGroup,"Function","GetScorecardGoalValueInGroup",true},            
+            /* Goals */
+            {"GetScorecardGoalsInGroup","GetScorecardGoalsInGroup",PBIRESTAPIComm.GetScorecardGoalsInGroup,"Function","GetScorecardGoalsInGroup",true},            
+            {"GetScorecardGoalInGroup","GetScorecardGoalInGroup",PBIRESTAPIComm.GetScorecardGoalInGroup,"Function","GetScorecardGoalInGroup",true},            
+            {"GetScorecardGoalRefreshHistoryInGroup","GetScorecardGoalRefreshHistoryInGroup",PBIRESTAPIComm.GetScorecardGoalRefreshHistoryInGroup,"Function","GetScorecardGoalRefreshHistoryInGroup",true},            
+            /* GoalsStatusRules */
+            {"GetScorecardGoalsStatusRulesInGroup","GetScorecardGoalsStatusRulesInGroup",PBIRESTAPIComm.GetScorecardGoalsStatusRulesInGroup,"Function","GetScorecardGoalsStatusRulesInGroup",true},
             /* Groups */
             {"GetGroupUsers","GetGroupUsers",PBIRESTAPIComm.GetGroupUsers,"Function","GetGroupUsers",true},
             {"GetGroups","GetGroups",PBIRESTAPIComm.GetGroups,"Function","GetGroups",true},
@@ -58,7 +80,11 @@ let
             {"GetPipelineStageArtifacts","GetPipelineStageArtifacts",PBIRESTAPIComm.GetPipelineStageArtifacts,"Function","GetPipelineStageArtifacts",true},
             {"GetPipelineStages","GetPipelineStages",PBIRESTAPIComm.GetPipelineStages,"Function","GetPipelineStages",true},
             {"GetPipelineUsers","GetPipelineUsers",PBIRESTAPIComm.GetPipelineUsers,"Function","GetPipelineUsers",true},
-            {"GetPipelines","GetPipelines",PBIRESTAPIComm.GetPipelines,"Function","GetPipelines",true}                         
+            {"GetPipelines","GetPipelines",PBIRESTAPIComm.GetPipelines,"Function","GetPipelines",true},
+            /* Scorecards */
+            {"GetScorecardsInGroup","GetScorecardsInGroup",PBIRESTAPIComm.GetScorecardsInGroup,"Function","GetScorecardsInGroup",true},
+            {"GetScorecardInGroup","GetScorecardInGroup",PBIRESTAPIComm.GetScorecardInGroup,"Function","GetScorecardInGroup",true},                                     
+            {"GetScorecardByReportIdInGroup","GetScorecardByReportIdInGroup",PBIRESTAPIComm.GetScorecardByReportIdInGroup,"Function","GetScorecardByReportIdInGroup",true}                                           
         }),
 	navTable = Table.ForceToNavigationTable(objects, {"Key"},"Name","Data","ItemKind","ItemName","IsLeaf")
 in
@@ -80,7 +106,7 @@ GetAppType = type function (
             Documentation.FieldCaption = "App ID",
             Documentation.FieldDescription = "The Application ID",
             Documentation.SampleValues = {
-                "xxx-xxxx-yyxa..."
+                "xxx-xxxx-abcd..."
             }
         ]
     )
@@ -89,7 +115,7 @@ GetAppType = type function (
     Documentation.LongDescription = "Returns the specified installed app.",
     Documentation.Examples = {
         [
-            Code = "=PBIRESTAPIComm.GetApp(""xxx-xxxx-yyxa..."")",
+            Code = "=PBIRESTAPIComm.GetApp(""xxx-xxxx-abcd..."")",
             Result = "Defined as https://learn.microsoft.com/en-us/rest/api/power-bi/apps/get-app#app"
         ]
     }
@@ -126,7 +152,7 @@ GetApps = () =>
         result;
 /*** End GetApps***/
 
-/*** GetDashboard***/
+/*** GetDashboardInApp***/
 shared PBIRESTAPIComm.GetDashboardInApp = Value.ReplaceType(
     GetDashboardInApp,
     GetDashboardInAppType
@@ -138,7 +164,7 @@ GetDashboardInAppType = type function (
             Documentation.FieldCaption = "App ID",
             Documentation.FieldDescription = "The Application ID.",
             Documentation.SampleValues = {
-                "xxx-xxxx-yyxa..."
+                "xxx-xxxx-abcd..."
             }
         ]
     ),
@@ -147,7 +173,7 @@ GetDashboardInAppType = type function (
             Documentation.FieldCaption = "Dashboard ID",
             Documentation.FieldDescription = "The Dashboard ID.",
             Documentation.SampleValues = {
-                "xxx-xxxx-yyxa..."
+                "xxx-xxxx-efgh..."
             }
         ]
     )
@@ -156,7 +182,7 @@ GetDashboardInAppType = type function (
     Documentation.LongDescription = "Returns the specified dashboard from the specified app.",
     Documentation.Examples = {
         [
-            Code = "=PBIRESTAPIComm.GetDashboardInApp(""xxx-xxxx-yyxa..."",""xxx-xxxx-yyxa..."")",
+            Code = "=PBIRESTAPIComm.GetDashboardInApp(""xxx-xxxx-abcd..."",""xxx-xxxx-efgh..."")",
             Result = "Defined as https://learn.microsoft.com/en-us/rest/api/power-bi/apps/get-dashboard#dashboard"
         ]
     }
@@ -164,13 +190,13 @@ GetDashboardInAppType = type function (
 
 GetDashboardInApp = (optional appId as text, optional dashboardId as text) =>
     let
-        result = GetJSON("v1.0/myorg/apps" & appId & "/dashboards/" & dashboardId)
+        result = GetJSON("v1.0/myorg/apps/" & appId & "/dashboards/" & dashboardId)
     in
         result;
 
-/*** End GetDashboard***/
+/*** End GetDashboardInApp***/
 
-/*** GetDashboards***/
+/*** GetDashboardsInApp***/
 shared PBIRESTAPIComm.GetDashboardsInApp = Value.ReplaceType(
     GetDashboardsInApp,
     GetDashboardsInAppType
@@ -182,7 +208,7 @@ GetDashboardsInAppType = type function (
             Documentation.FieldCaption = "App ID",
             Documentation.FieldDescription = "The Application ID.",
             Documentation.SampleValues = {
-                "xxx-xxxx-yyxa..."
+                "xxx-xxxx-abcd..."
             }
         ]
     )
@@ -191,7 +217,7 @@ GetDashboardsInAppType = type function (
     Documentation.LongDescription = "Returns a list of dashboards from the specified app.",
     Documentation.Examples = {
         [
-            Code = "=PBIRESTAPIComm.GetDashboardsInApp(""xxx-xxxx-yyxa..."")",
+            Code = "=PBIRESTAPIComm.GetDashboardsInApp(""xxx-xxxx-abcd..."")",
             Result = "Defined as https://learn.microsoft.com/en-us/rest/api/power-bi/apps/get-dashboards#dashboards"
         ]
     }
@@ -199,13 +225,13 @@ GetDashboardsInAppType = type function (
 
 GetDashboardsInApp = (optional appId as text) =>
     let
-        result = GetJSON("v1.0/myorg/apps" & appId & "/dashboards")
+        result = GetJSON("v1.0/myorg/apps/" & appId & "/dashboards")
     in
         result;
 
-/*** End GetDashboards***/
+/*** End GetDashboardsInApp***/
 
-/*** GetReport***/
+/*** GetReportInApp***/
 shared PBIRESTAPIComm.GetReportInApp = Value.ReplaceType(
     GetReportInApp,
     GetReportInAppType
@@ -217,7 +243,7 @@ GetReportInAppType = type function (
             Documentation.FieldCaption = "App ID",
             Documentation.FieldDescription = "The Application ID.",
             Documentation.SampleValues = {
-                "xxx-xxxx-yyxa..."
+                "xxx-xxxx-abcd..."
             }
         ]
     ),
@@ -226,7 +252,7 @@ GetReportInAppType = type function (
             Documentation.FieldCaption = "Report ID",
             Documentation.FieldDescription = "The Report ID.",
             Documentation.SampleValues = {
-                "xxx-xxxx-yyxa..."
+                "xxx-xxxx-efgh..."
             }
         ]
     )
@@ -235,7 +261,7 @@ GetReportInAppType = type function (
     Documentation.LongDescription = "Returns the specified report from the specified app.",
     Documentation.Examples = {
         [
-            Code = "=PBIRESTAPIComm.GetReportInApp(""xxx-xxxx-yyxa..."",""xxx-xxxx-yyxa..."")",
+            Code = "=PBIRESTAPIComm.GetReportInApp(""xxx-xxxx-abcd..."",""xxx-xxxx-efgh..."")",
             Result = "Defined as https://learn.microsoft.com/en-us/rest/api/power-bi/apps/get-report#report"
         ]
     }
@@ -243,11 +269,11 @@ GetReportInAppType = type function (
 
 GetReportInApp = (optional appId as text, optional reportId as text) =>
     let
-        result = GetJSON("v1.0/myorg/apps" & appId & "/reports/" & reportId)
+        result = GetJSON("v1.0/myorg/apps/" & appId & "/reports/" & reportId)
     in
         result;
 
-/*** End GetReport***/
+/*** End GetReportInApp***/
 
 /*** GetReports***/
 shared PBIRESTAPIComm.GetReportsInApp = Value.ReplaceType(
@@ -261,7 +287,7 @@ GetReportsInAppType = type function (
             Documentation.FieldCaption = "Application ID",
             Documentation.FieldDescription = "The Application ID.",
             Documentation.SampleValues = {
-                "xxx-xxxx-yyxa..."
+                "xxx-xxxx-abcd..."
             }
         ]
     )
@@ -270,7 +296,7 @@ GetReportsInAppType = type function (
     Documentation.LongDescription = "Returns a list of reports from the specified app.",
     Documentation.Examples = {
         [
-            Code = "=PBIRESTAPIComm.GetReportsInApp(""xxx-xxxx-yyxa..."")",
+            Code = "=PBIRESTAPIComm.GetReportsInApp(""xxx-xxxx-abcd..."")",
             Result = "Defined as https://learn.microsoft.com/en-us/rest/api/power-bi/apps/get-reports#reports"
         ]
     }
@@ -284,11 +310,492 @@ GetReportsInApp = (optional appId as text) =>
 
 /*** End GetReports***/
 
-/*** GetTile***/
-/*** End GetTile***/
+/*** GetDashboardTileInApp***/
+shared PBIRESTAPIComm.GetDashboardTileInApp = Value.ReplaceType(
+    GetDashboardTileInApp,
+    GetDashboardTileInAppType
+);
 
-/*** GetTiles***/
-/*** End GetTiles***/
+GetDashboardTileInAppType = type function (
+    optional appId as (
+        type text meta [
+            Documentation.FieldCaption = "App ID",
+            Documentation.FieldDescription = "The application ID",
+            Documentation.SampleValues = {
+                "xxx-xxxx-abcd..."
+            }
+        ]
+    ),
+    optional dashboardId as (
+        type text meta [
+            Documentation.FieldCaption = "Dashboard ID",
+            Documentation.FieldDescription = "The dashboard ID.",
+            Documentation.SampleValues = {
+                "xxx-xxxx-efgh..."
+            }
+        ]
+    ),
+    optional tileId as (
+        type text meta [
+            Documentation.FieldCaption = "Tile ID",
+            Documentation.FieldDescription = "The tile ID.",
+            Documentation.SampleValues = {
+                "xxx-xxxx-ijkl..."
+            }
+        ]
+    )    
+) as table meta [
+    Documentation.Name = "PBIRESTAPIComm.GetDashboardTileInApp",
+    Documentation.LongDescription = "Returns the specified tile within the specified dashboard from the specified app.
+                                     Supported tiles include datasets and live tiles that contain an entire report page.",
+    Documentation.Examples = {
+        [
+            Code = "=PBIRESTAPIComm.GetDashboardTileInApp(""xxx-xxxx-abcd..."",""xxx-xxxx-efgh..."",""xxx-xxxx-ijkl..."")",
+            Result = "Defined as https://learn.microsoft.com/en-us/rest/api/power-bi/apps/get-tile#tile"
+        ]
+    }
+];
+
+GetDashboardTileInApp = (optional appId as text, optional dashboardId as text, optional tileId as text) =>
+    let
+        result = GetJSON("v1.0/myorg/apps/" & appId & "/dashboards/" & dashboardId & "/tiles/" & tileId)
+    in
+        result;
+/*** End GetDashboardTileApp***/
+
+/*** GetDashboardTilesInApp***/
+shared PBIRESTAPIComm.GetDashboardTilesInApp = Value.ReplaceType(
+    GetDashboardTilesInApp,
+    GetDashboardTilesInAppType
+);
+
+GetDashboardTilesInAppType = type function (
+    optional appId as (
+        type text meta [
+            Documentation.FieldCaption = "App ID",
+            Documentation.FieldDescription = "The application ID",
+            Documentation.SampleValues = {
+                "xxx-xxxx-abcd..."
+            }
+        ]
+    ),
+    optional dashboardId as (
+        type text meta [
+            Documentation.FieldCaption = "Dashboard ID",
+            Documentation.FieldDescription = "The dashboard ID.",
+            Documentation.SampleValues = {
+                "xxx-xxxx-efgh..."
+            }
+        ]
+    ) 
+) as table meta [
+    Documentation.Name = "PBIRESTAPIComm.GetDashboardTilesInApp",
+    Documentation.LongDescription = "Returns a list of tiles within the specified dashboard from the specified app.",
+    Documentation.Examples = {
+        [
+            Code = "=PBIRESTAPIComm.GetDashboardTilesInApp(""xxx-xxxx-abcd..."",""xxx-xxxx-efgh..."")",
+            Result = "Defined as https://learn.microsoft.com/en-us/rest/api/power-bi/apps/get-tiles#tiles"
+        ]
+    }
+];
+
+GetDashboardTilesInApp = (optional appId as text, optional dashboardId as text) =>
+    let
+        result = GetJSON("v1.0/myorg/apps/" & appId & "/dashboards/" & dashboardId & "/tiles")
+    in
+        result;
+/*** End GetDashboardTilesInApp***/
+
+/*****************
+    Dashboards
+*****************/
+
+/*** GetDashboardInGroup***/
+shared PBIRESTAPIComm.GetDashboardInGroup = Value.ReplaceType(
+    GetDashboardInGroup,
+    GetDashboardInGroupType
+);
+
+GetDashboardInGroupType = type function (
+    optional groupdId as (
+        type text meta [
+            Documentation.FieldCaption = "Group ID",
+            Documentation.FieldDescription = "The workspace ID",
+            Documentation.SampleValues = {
+                "xxx-xxxx-abcd..."
+            }
+        ]
+    ),
+    optional dashboardId as (
+        type text meta [
+            Documentation.FieldCaption = "Dashboard ID",
+            Documentation.FieldDescription = "The dashboard ID.",
+            Documentation.SampleValues = {
+                "xxx-xxxx-efgh..."
+            }
+        ]
+    )
+) as table meta [
+    Documentation.Name = "PBIRESTAPIComm.GetDashboardInGroup",
+    Documentation.LongDescription = "Returns the specified dashboard from the specified workspace.",
+    Documentation.Examples = {
+        [
+            Code = "=PBIRESTAPIComm.GetDashboardInGroup(""xxx-xxxx-abcd..."",""xxx-xxxx-efgh..."")",
+            Result = "Defined as https://learn.microsoft.com/en-us/rest/api/power-bi/dashboards/get-dashboard-in-group#dashboard"
+        ]
+    }
+];
+
+GetDashboardInGroup = (optional groupId as text, optional dashboardId as text) =>
+    let
+        result = GetJSON("v1.0/myorg/groups/" & groupId & "/dashboards/" & dashboardId)
+    in
+        result;
+/*** End GetDashboardInGroup***/
+
+/*** GetDashboardsInGroup***/
+shared PBIRESTAPIComm.GetDashboardsInGroup = Value.ReplaceType(
+    GetDashboardsInGroup,
+    GetDashboardsInGroupType
+);
+
+GetDashboardsInGroupType = type function (
+    optional groupdId as (
+        type text meta [
+            Documentation.FieldCaption = "Group ID",
+            Documentation.FieldDescription = "The workspace ID",
+            Documentation.SampleValues = {
+                "xxx-xxxx-abcd..."
+            }
+        ]
+    )
+) as table meta [
+    Documentation.Name = "PBIRESTAPIComm.GetDashboardsInGroup",
+    Documentation.LongDescription = "Returns a list of dashboards from the specified workspace.",
+    Documentation.Examples = {
+        [
+            Code = "=PBIRESTAPIComm.GetDashboardsInGroup(""xxx-xxxx-abcd..."")",
+            Result = "Defined as https://learn.microsoft.com/en-us/rest/api/power-bi/dashboards/get-dashboards-in-group#dashboards"
+        ]
+    }
+];
+
+GetDashboardsInGroup = (optional groupdId as text) =>
+    let
+        result = GetJSON("v1.0/myorg/groups/" & groupdId & "/dashboards")
+    in
+        result;
+/*** End GetDashboardsInGroup***/
+
+/*** GetDashboardTileInGroup***/
+shared PBIRESTAPIComm.GetDashboardTileInGroup = Value.ReplaceType(
+    GetDashboardTileInGroup,
+    GetDashboardTileInGroupType
+);
+
+GetDashboardTileInGroupType = type function (
+    optional groupdId as (
+        type text meta [
+            Documentation.FieldCaption = "Group ID",
+            Documentation.FieldDescription = "The workspace ID",
+            Documentation.SampleValues = {
+                "xxx-xxxx-abcd..."
+            }
+        ]
+    ),
+    optional dashboardId as (
+        type text meta [
+            Documentation.FieldCaption = "Dashboard ID",
+            Documentation.FieldDescription = "The dashboard ID.",
+            Documentation.SampleValues = {
+                "xxx-xxxx-efgh..."
+            }
+        ]
+    ),
+    optional tileId as (
+        type text meta [
+            Documentation.FieldCaption = "Tile ID",
+            Documentation.FieldDescription = "The tile ID.",
+            Documentation.SampleValues = {
+                "xxx-xxxx-ijkl..."
+            }
+        ]
+    )    
+) as table meta [
+    Documentation.Name = "PBIRESTAPIComm.GetDashboardTileInGroup",
+    Documentation.LongDescription = "Returns the specified tile within the specified dashboard from the specified workspace.
+                                     Supported tiles include datasets and live tiles that contain an entire report page.",
+    Documentation.Examples = {
+        [
+            Code = "=PBIRESTAPIComm.GetDashboardTileInGroup(""xxx-xxxx-abcd..."",""xxx-xxxx-efgh..."",""xxx-xxxx-ijkl..."")",
+            Result = "Defined as https://learn.microsoft.com/en-us/rest/api/power-bi/dashboards/get-tile-in-group#tile"
+        ]
+    }
+];
+GetDashboardTileInGroup = (optional groupId as text, optional dashboardId as text, optional tileId as text) =>
+    let
+        result = GetJSON("v1.0/myorg/groups/" & groupId & "/dashboards/" & dashboardId & "/tiles/" & tileId)
+    in
+        result;
+/*** End GetDashboardTileInGroup***/
+
+/*** GetDashboardTilesInGroup***/
+shared PBIRESTAPIComm.GetDashboardTilesInGroup = Value.ReplaceType(
+    GetDashboardTilesInGroup,
+    GetDashboardTilesInGroupType
+);
+
+GetDashboardTilesInGroupType = type function (
+    optional groupdId as (
+        type text meta [
+            Documentation.FieldCaption = "Group ID",
+            Documentation.FieldDescription = "The workspace ID",
+            Documentation.SampleValues = {
+                "xxx-xxxx-abcd..."
+            }
+        ]
+    ),
+    optional dashboardId as (
+        type text meta [
+            Documentation.FieldCaption = "Dashboard ID",
+            Documentation.FieldDescription = "The dashboard ID.",
+            Documentation.SampleValues = {
+                "xxx-xxxx-efgh..."
+            }
+        ]
+    ) 
+) as table meta [
+    Documentation.Name = "PBIRESTAPIComm.GetDashboardTilesInGroup",
+    Documentation.LongDescription = "Returns a list of tiles within the specified dashboard from the specified workspace.
+                                     Supported tiles include datasets and live tiles that contain an entire report page.",
+    Documentation.Examples = {
+        [
+            Code = "=PBIRESTAPIComm.GetDashboardTilesInGroup(""xxx-xxxx-abcd..."",""xxx-xxxx-efgh..."")",
+            Result = "Defined as https://learn.microsoft.com/en-us/rest/api/power-bi/dashboards/get-tiles-in-group#tiles"
+        ]
+    }
+];
+
+GetDashboardTilesInGroup = (optional groupId as text, optional dashboardId as text) =>
+    let
+        result = GetJSON("v1.0/myorg/groups/" & groupId & "/dashboards/" & dashboardId & "/tiles")
+    in
+        result;
+/*** End GetDashboardTilesInGroup***/
+
+
+/*****************
+    Dataflows
+*****************/
+
+/*** GetDataflowInGroup***/
+shared PBIRESTAPIComm.GetDataflowInGroup = Value.ReplaceType(
+    GetDataflowInGroup,
+    GetDataflowInGroupType
+);
+
+GetDataflowInGroupType = type function (
+    optional groupdId as (
+        type text meta [
+            Documentation.FieldCaption = "Group ID",
+            Documentation.FieldDescription = "The workspace ID",
+            Documentation.SampleValues = {
+                "xxx-xxxx-abcd..."
+            }
+        ]
+    ),
+    optional datasetId as (
+        type text meta [
+            Documentation.FieldCaption = "Dataflow ID",
+            Documentation.FieldDescription = "The dataflow ID",
+            Documentation.SampleValues = {
+                "xxx-xxxx-efgh..."
+            }
+        ]
+    )    
+) as table meta [
+    Documentation.Name = "PBIRESTAPIComm.GetDataflowInGroup",
+    Documentation.LongDescription = "Exports the specified dataflow definition to a JSON file.",
+    Documentation.Examples = {
+        [
+            Code = "=PBIRESTAPIComm.GetDataflowInGroup(""xxx-xxxx-abcd..."",""xxx-xxxx-efgh..."")",
+            Result = "Exported Json file"
+        ]
+    }
+];
+
+GetDataflowInGroup = (optional groupdId as text, optional dataflowId as text) =>
+    let
+        result = GetJSON("v1.0/myorg/groups/" & groupdId & "/dataflows/" & dataflowId)
+    in
+        result;
+/*** End GetDataflowInGroup***/
+
+/*** GetDataflowDataSourcesInGroup***/
+shared PBIRESTAPIComm.GetDataflowDataSourcesInGroup = Value.ReplaceType(
+    GetDataflowDataSourcesInGroup,
+    GetDataflowDataSourcesInGroupType
+);
+
+GetDataflowDataSourcesInGroupType = type function (
+    optional groupdId as (
+        type text meta [
+            Documentation.FieldCaption = "Group ID",
+            Documentation.FieldDescription = "The workspace ID",
+            Documentation.SampleValues = {
+                "xxx-xxxx-abcd..."
+            }
+        ]
+    ),
+    optional datasetId as (
+        type text meta [
+            Documentation.FieldCaption = "Dataflow ID",
+            Documentation.FieldDescription = "The dataflow ID",
+            Documentation.SampleValues = {
+                "xxx-xxxx-efgh..."
+            }
+        ]
+    )    
+) as table meta [
+    Documentation.Name = "PBIRESTAPIComm.GetDataflowDataSourcesInGroup",
+    Documentation.LongDescription = "Returns a list of data sources for the specified dataflow.",
+    Documentation.Examples = {
+        [
+            Code = "=PBIRESTAPIComm.GetDataflowDataSourcesInGroup(""xxx-xxxx-abcd..."",""xxx-xxxx-efgh..."")",
+            Result = "Defined as https://learn.microsoft.com/en-us/rest/api/power-bi/dataflows/get-dataflow-data-sources#datasources"
+        ]
+    }
+];
+
+GetDataflowDataSourcesInGroup = (optional groupdId as text, optional dataflowId as text) =>
+    let
+        result = GetJSON("v1.0/myorg/groups/" & groupdId & "/dataflows/" & dataflowId & "/datasources")
+    in
+        result;
+/*** End GetDataflowDataSourcesInGroup***/
+
+/*** GetDataflowTransactionsInGroup***/
+shared PBIRESTAPIComm.GetDataflowTransactionsInGroup = Value.ReplaceType(
+    GetDataflowTransactionsInGroup,
+    GetDataflowTransactionsInGroupType
+);
+
+GetDataflowTransactionsInGroupType = type function (
+    optional groupdId as (
+        type text meta [
+            Documentation.FieldCaption = "Group ID",
+            Documentation.FieldDescription = "The workspace ID",
+            Documentation.SampleValues = {
+                "xxx-xxxx-abcd..."
+            }
+        ]
+    ),
+    optional datasetId as (
+        type text meta [
+            Documentation.FieldCaption = "Dataflow ID",
+            Documentation.FieldDescription = "The dataflow ID",
+            Documentation.SampleValues = {
+                "xxx-xxxx-efgh..."
+            }
+        ]
+    )    
+) as table meta [
+    Documentation.Name = "PBIRESTAPIComm.GetDataflowTransactionsInGroup",
+    Documentation.LongDescription = "Returns a list of transactions for the specified dataflow.",
+    Documentation.Examples = {
+        [
+            Code = "=PBIRESTAPIComm.GetDataflowTransactionsInGroup(""xxx-xxxx-abcd..."",""xxx-xxxx-efgh..."")",
+            Result = "Defined as https://learn.microsoft.com/en-us/rest/api/power-bi/dataflows/get-dataflow-transactions#dataflowtransactions"
+        ]
+    }
+];
+
+GetDataflowTransactionsInGroup = (optional groupdId as text, optional dataflowId as text) =>
+    let
+        result = GetJSON("v1.0/myorg/groups/" & groupdId & "/dataflows/" & dataflowId & "/transactions")
+    in
+        result;
+/*** End GetDataflowTransactionsInGroup***/
+
+/*** GetDataflowsInGroup***/
+shared PBIRESTAPIComm.GetDataflowsInGroup = Value.ReplaceType(
+    GetDataflowsInGroup,
+    GetDataflowsInGroupType
+);
+
+GetDataflowsInGroupType = type function (
+    optional groupdId as (
+        type text meta [
+            Documentation.FieldCaption = "Group ID",
+            Documentation.FieldDescription = "The workspace ID",
+            Documentation.SampleValues = {
+                "xxx-xxxx-abcd..."
+            }
+        ]
+    )
+) as table meta [
+    Documentation.Name = "PBIRESTAPIComm.GetDataflowsInGroup",
+    Documentation.LongDescription = "Returns a list of all dataflows from the specified workspace.",
+    Documentation.Examples = {
+        [
+            Code = "=PBIRESTAPIComm.GetDataflowsInGroup(""xxx-xxxx-abcd..."")",
+            Result = "Defined as https://learn.microsoft.com/en-us/rest/api/power-bi/dataflows/get-dataflows#dataflows"
+        ]
+    }
+];
+
+GetDataflowsInGroup = (optional groupdId as text) =>
+    let
+        result = GetJSON("v1.0/myorg/groups/" & groupdId & "/dataflows")
+    in
+        result;
+/*** End GetDataflowsInGroup***/
+
+/** GetUpstreamDataflowsInGroup***/
+shared PBIRESTAPIComm.GetUpstreamDataflowsInGroup = Value.ReplaceType(
+    GetUpstreamDataflowsInGroup,
+    GetUpstreamDataflowsInGroupType
+);
+
+GetUpstreamDataflowsInGroupType = type function (
+    optional groupdId as (
+        type text meta [
+            Documentation.FieldCaption = "Group ID",
+            Documentation.FieldDescription = "The workspace ID",
+            Documentation.SampleValues = {
+                "xxx-xxxx-abcd..."
+            }
+        ]
+    ),
+    optional datasetId as (
+        type text meta [
+            Documentation.FieldCaption = "Dataflow ID",
+            Documentation.FieldDescription = "The dataflow ID",
+            Documentation.SampleValues = {
+                "xxx-xxxx-efgh..."
+            }
+        ]
+    )    
+) as table meta [
+    Documentation.Name = "PBIRESTAPIComm.GetUpstreamDataflowsInGroup",
+    Documentation.LongDescription = "Returns a list of upstream dataflows for the specified dataflow.",
+    Documentation.Examples = {
+        [
+            Code = "=PBIRESTAPIComm.GetUpstreamDataflowsInGroup(""xxx-xxxx-abcd..."",""xxx-xxxx-efgh..."")",
+            Result = "Defined as https://learn.microsoft.com/en-us/rest/api/power-bi/dataflows/get-upstream-dataflows-in-group#dependentdataflows"
+        ]
+    }
+];
+
+GetUpstreamDataflowsInGroup = (optional groupdId as text, optional dataflowId as text) =>
+    let
+        result = GetJSON("v1.0/myorg/groups/" & groupdId & "/dataflows/" & dataflowId & "/upstreamDataflows")
+    in
+        result;
+/** End GetUpstreamDataflowsInGroup***/
+
+
+
 
 /*****************
     Datasets
@@ -306,7 +813,7 @@ GetDatasetDiscoverGatewaysInGroupType = type function (
             Documentation.FieldCaption = "Group ID",
             Documentation.FieldDescription = "The workspace ID",
             Documentation.SampleValues = {
-                "xxx-xxxx-yyxa..."
+                "xxx-xxxx-abcd..."
             }
         ]
     ),
@@ -315,7 +822,7 @@ GetDatasetDiscoverGatewaysInGroupType = type function (
             Documentation.FieldCaption = "Dataset ID",
             Documentation.FieldDescription = "The Dataset ID",
             Documentation.SampleValues = {
-                "xxx-xxxx-yyxb..."
+                "xxx-xxxx-efgh..."
             }
         ]
     )    
@@ -324,7 +831,7 @@ GetDatasetDiscoverGatewaysInGroupType = type function (
     Documentation.LongDescription = "Returns a list of gateways that the specified dataset from the specified workspace can be bound to. This API call is only relevant to datasets that have at least one on-premises connection. For datasets with cloud-only connections, this API call returns an empty list.",
     Documentation.Examples = {
         [
-            Code = "=PBIRESTAPIComm.GetDatasetDiscoverGatewaysInGroup(""xxx-xxxx-yyxa..."",""xxx-xxxx-yyxb..."")",
+            Code = "=PBIRESTAPIComm.GetDatasetDiscoverGatewaysInGroup(""xxx-xxxx-abcd..."",""xxx-xxxx-efgh..."")",
             Result = "Defined as https://learn.microsoft.com/en-us/rest/api/power-bi/datasets/discover-gateways-in-group#gateways"
         ]
     }
@@ -349,7 +856,7 @@ GetDatasetInGroupType = type function (
             Documentation.FieldCaption = "Group ID",
             Documentation.FieldDescription = "The workspace ID",
             Documentation.SampleValues = {
-                "xxx-xxxx-yyxa..."
+                "xxx-xxxx-abcd..."
             }
         ]
     ),
@@ -358,7 +865,7 @@ GetDatasetInGroupType = type function (
             Documentation.FieldCaption = "Dataset ID",
             Documentation.FieldDescription = "The Dataset ID",
             Documentation.SampleValues = {
-                "xxx-xxxx-yyxa..."
+                "xxx-xxxx-efgh..."
             }
         ]
     )    
@@ -367,7 +874,7 @@ GetDatasetInGroupType = type function (
     Documentation.LongDescription = "Returns the specified dataset from the specified workspace.",
     Documentation.Examples = {
         [
-            Code = "=PBIRESTAPIComm.GetDatasetInGroup(""xxx-xxxx-yyxa..."",""xxx-xxxx-yyxa..."")",
+            Code = "=PBIRESTAPIComm.GetDatasetInGroup(""xxx-xxxx-abcd..."",""xxx-xxxx-efgh..."")",
             Result = "Defined as https://learn.microsoft.com/en-us/rest/api/power-bi/datasets/get-datasets-in-group#datasets"
         ]
     }
@@ -392,7 +899,7 @@ GetDatasetToDataflowsLinksInGroupType = type function (
             Documentation.FieldCaption = "Group ID",
             Documentation.FieldDescription = "The workspace ID",
             Documentation.SampleValues = {
-                "xxx-xxxx-yyxa..."
+                "xxx-xxxx-abcd..."
             }
         ]
     )
@@ -401,7 +908,7 @@ GetDatasetToDataflowsLinksInGroupType = type function (
     Documentation.LongDescription = "Returns a list of upstream dataflows for datasets from the specified workspace.",
     Documentation.Examples = {
         [
-            Code = "=PBIRESTAPIComm.GetDatasetToDataflowsLinksInGroup(""xxx-xxxx-yyxa..."")",
+            Code = "=PBIRESTAPIComm.GetDatasetToDataflowsLinksInGroup(""xxx-xxxx-abcd..."")",
             Result = "Defined as https://learn.microsoft.com/en-us/rest/api/power-bi/datasets/get-dataset-to-dataflows-links-in-group#datasettodataflowlinksresponse"
         ]
     }
@@ -426,7 +933,7 @@ GetDatasetUsersInGroupType = type function (
             Documentation.FieldCaption = "Group ID",
             Documentation.FieldDescription = "The workspace ID",
             Documentation.SampleValues = {
-                "xxx-xxxx-yyxa..."
+                "xxx-xxxx-abcd..."
             }
         ]
     ),
@@ -435,7 +942,7 @@ GetDatasetUsersInGroupType = type function (
             Documentation.FieldCaption = "Dataset ID",
             Documentation.FieldDescription = "The Dataset ID",
             Documentation.SampleValues = {
-                "xxx-xxxx-yyx1..."
+                "xxx-xxxx-efgh..."
             }
         ]
     )    
@@ -444,7 +951,7 @@ GetDatasetUsersInGroupType = type function (
     Documentation.LongDescription = "Returns a list of principals that have access to the specified dataset. When user permissions to a dataset have been recently updated, the new permissions might not be immediately available through API calls.",
     Documentation.Examples = {
         [
-            Code = "=PBIRESTAPIComm.GetDatasetUsersInGroup(""xxx-xxxx-yyxa..."",""xxx-xxxx-yyx1..."")",
+            Code = "=PBIRESTAPIComm.GetDatasetUsersInGroup(""xxx-xxxx-abcd..."",""xxx-xxxx-efgh..."")",
             Result = "Defined as https://learn.microsoft.com/en-us/rest/api/power-bi/datasets/get-dataset-users-in-group#datasetusersaccess"
         ]
     }
@@ -469,7 +976,7 @@ GetDatasetsInGroupType = type function (
             Documentation.FieldCaption = "Group ID",
             Documentation.FieldDescription = "The workspace ID",
             Documentation.SampleValues = {
-                "xxx-xxxx-yyxa..."
+                "xxx-xxxx-abcd..."
             }
         ]
     )
@@ -478,7 +985,7 @@ GetDatasetsInGroupType = type function (
     Documentation.LongDescription = "Returns a list of datasets from the specified workspace.",
     Documentation.Examples = {
         [
-            Code = "=PBIRESTAPIComm.GetDatasetsInGroup(""xxx-xxxx-yyxa..."")",
+            Code = "=PBIRESTAPIComm.GetDatasetsInGroup(""xxx-xxxx-abcd..."")",
             Result = "Defined as https://learn.microsoft.com/en-us/rest/api/power-bi/datasets/get-datasets-in-group#datasets"
         ]
     }
@@ -503,7 +1010,7 @@ GetDatasetDatasourcesInGroupType = type function (
             Documentation.FieldCaption = "Group ID",
             Documentation.FieldDescription = "The workspace ID",
             Documentation.SampleValues = {
-                "xxx-xxxx-yyxa..."
+                "xxx-xxxx-abcd..."
             }
         ]
     ),
@@ -512,7 +1019,7 @@ GetDatasetDatasourcesInGroupType = type function (
             Documentation.FieldCaption = "Dataset ID",
             Documentation.FieldDescription = "The Dataset ID",
             Documentation.SampleValues = {
-                "xxx-xxxx-yyx1..."
+                "xxx-xxxx-efgh..."
             }
         ]
     )    
@@ -521,7 +1028,7 @@ GetDatasetDatasourcesInGroupType = type function (
     Documentation.LongDescription = "Returns a list of data sources for the specified dataset from the specified workspace.",
     Documentation.Examples = {
         [
-            Code = "=PBIRESTAPIComm.GetDatasetDatasourcesInGroup(""xxx-xxxx-yyxa..."",""xxx-xxxx-yyx1..."")",
+            Code = "=PBIRESTAPIComm.GetDatasetDatasourcesInGroup(""xxx-xxxx-abcd..."",""xxx-xxxx-efgh..."")",
             Result = "Defined as https://learn.microsoft.com/en-us/rest/api/power-bi/datasets/get-datasources-in-group#datasources"
         ]
     }
@@ -546,7 +1053,7 @@ GetDatasetDirectQueryRefreshScheduleInGroupType = type function (
             Documentation.FieldCaption = "Group ID",
             Documentation.FieldDescription = "The workspace ID",
             Documentation.SampleValues = {
-                "xxx-xxxx-yyxa..."
+                "xxx-xxxx-abcd..."
             }
         ]
     ),
@@ -555,7 +1062,7 @@ GetDatasetDirectQueryRefreshScheduleInGroupType = type function (
             Documentation.FieldCaption = "Dataset ID",
             Documentation.FieldDescription = "The Dataset ID",
             Documentation.SampleValues = {
-                "xxx-xxxx-yyx1..."
+                "xxx-xxxx-efgh..."
             }
         ]
     )    
@@ -564,7 +1071,7 @@ GetDatasetDirectQueryRefreshScheduleInGroupType = type function (
     Documentation.LongDescription = "Returns the refresh schedule for a specified DirectQuery or LiveConnection dataset from the specified workspace.",
     Documentation.Examples = {
         [
-            Code = "=PBIRESTAPIComm.GetDatasetDirectQueryRefreshScheduleInGroup(""xxx-xxxx-yyxa..."",""xxx-xxxx-yyx1..."")",
+            Code = "=PBIRESTAPIComm.GetDatasetDirectQueryRefreshScheduleInGroup(""xxx-xxxx-abcd..."",""xxx-xxxx-efgh..."")",
             Result = "Defined as https://learn.microsoft.com/en-us/rest/api/power-bi/datasets/get-direct-query-refresh-schedule-in-group#directqueryrefreshschedule"
         ]
     }
@@ -593,7 +1100,7 @@ GetDatasetParametersInGroupType = type function (
             Documentation.FieldCaption = "Group ID",
             Documentation.FieldDescription = "The workspace ID",
             Documentation.SampleValues = {
-                "xxx-xxxx-yyxa..."
+                "xxx-xxxx-abcd..."
             }
         ]
     ),
@@ -602,7 +1109,7 @@ GetDatasetParametersInGroupType = type function (
             Documentation.FieldCaption = "Dataset ID",
             Documentation.FieldDescription = "The Dataset ID",
             Documentation.SampleValues = {
-                "xxx-xxxx-yyx1..."
+                "xxx-xxxx-efgh..."
             }
         ]
     )    
@@ -611,7 +1118,7 @@ GetDatasetParametersInGroupType = type function (
     Documentation.LongDescription = "Returns a list of parameters for the specified dataset from the specified workspace.",
     Documentation.Examples = {
         [
-            Code = "=PBIRESTAPIComm.GetDatasetParametersInGroup(""xxx-xxxx-yyxa..."",""xxx-xxxx-yyx1..."")",
+            Code = "=PBIRESTAPIComm.GetDatasetParametersInGroup(""xxx-xxxx-abcd..."",""xxx-xxxx-efgh..."")",
             Result = "Defined as https://learn.microsoft.com/en-us/rest/api/power-bi/datasets/get-parameters-in-group#mashupparameters"
         ]
     }
@@ -636,7 +1143,7 @@ GetDatasetRefreshExecutionDetailsInGroupType = type function (
             Documentation.FieldCaption = "Group ID",
             Documentation.FieldDescription = "The workspace ID",
             Documentation.SampleValues = {
-                "xxx-xxxx-yyxa..."
+                "xxx-xxxx-abcd..."
             }
         ]
     ),
@@ -645,7 +1152,7 @@ GetDatasetRefreshExecutionDetailsInGroupType = type function (
             Documentation.FieldCaption = "Dataset ID",
             Documentation.FieldDescription = "The Dataset ID",
             Documentation.SampleValues = {
-                "xxx-xxxx-yyx1..."
+                "xxx-xxxx-efgh..."
             }
         ]
     ),
@@ -654,7 +1161,7 @@ GetDatasetRefreshExecutionDetailsInGroupType = type function (
             Documentation.FieldCaption = "Refresh ID",
             Documentation.FieldDescription = "The Refresh ID",
             Documentation.SampleValues = {
-                "xxx-xxxx-yyx2..."
+                "xxx-xxxx-ijkl..."
             }
         ]
     )        
@@ -663,7 +1170,7 @@ GetDatasetRefreshExecutionDetailsInGroupType = type function (
     Documentation.LongDescription = "Returns execution details of an enhanced refresh operation for the specified dataset from the specified workspace.",
     Documentation.Examples = {
         [
-            Code = "=PBIRESTAPIComm.GetDatasetRefreshExecutionDetailsInGroup(""xxx-xxxx-yyxa..."",""xxx-xxxx-yyx1..."",""xxx-xxxx-yyx2..."")",
+            Code = "=PBIRESTAPIComm.GetDatasetRefreshExecutionDetailsInGroup(""xxx-xxxx-abcd..."",""xxx-xxxx-efgh..."",""xxx-xxxx-ijkl..."")",
             Result = "Defined as https://learn.microsoft.com/en-us/rest/api/power-bi/datasets/get-refresh-execution-details-in-group#datasetrefreshdetail"
         ]
     }
@@ -688,7 +1195,7 @@ GetDatasetRefreshHistoryInGroupType = type function (
             Documentation.FieldCaption = "Group ID",
             Documentation.FieldDescription = "The workspace ID.",
             Documentation.SampleValues = {
-                "xxx-xxxx-yyxa..."
+                "xxx-xxxx-abcd..."
             }
         ]
     ),
@@ -697,7 +1204,7 @@ GetDatasetRefreshHistoryInGroupType = type function (
             Documentation.FieldCaption = "Dataset ID",
             Documentation.FieldDescription = "The Dataset ID.",
             Documentation.SampleValues = {
-                "xxx-xxxx-yyxa..."
+                "xxx-xxxx-efgh..."
             }
         ]
     )
@@ -706,7 +1213,7 @@ GetDatasetRefreshHistoryInGroupType = type function (
     Documentation.LongDescription = "Returns the refresh history for the specified dataset from the specified workspace.",
     Documentation.Examples = {
         [
-            Code = "=PBIRESTAPIComm.GetDatasetRefreshHistoryInGroup(""xxx-xxxx-yyxa..."",""xxx-xxxx-yyxa..."")",
+            Code = "=PBIRESTAPIComm.GetDatasetRefreshHistoryInGroup(""xxx-xxxx-abcd..."",""xxx-xxxx-efgh..."")",
             Result = "Defined as https://learn.microsoft.com/en-us/rest/api/power-bi/datasets/get-refresh-history-in-group#refreshes"
         ]
     }
@@ -731,7 +1238,7 @@ GetDatasetRefreshScheduleInGroupType = type function (
             Documentation.FieldCaption = "Group ID",
             Documentation.FieldDescription = "The workspace ID.",
             Documentation.SampleValues = {
-                "xxx-xxxx-yyxa..."
+                "xxx-xxxx-abcd..."
             }
         ]
     ),
@@ -740,7 +1247,7 @@ GetDatasetRefreshScheduleInGroupType = type function (
             Documentation.FieldCaption = "Dataset ID",
             Documentation.FieldDescription = "The Dataset ID.",
             Documentation.SampleValues = {
-                "xxx-xxxx-yyxa..."
+                "xxx-xxxx-efgh..."
             }
         ]
     )
@@ -749,7 +1256,7 @@ GetDatasetRefreshScheduleInGroupType = type function (
     Documentation.LongDescription = "Returns the refresh schedule for the specified dataset from the specified workspace.",
     Documentation.Examples = {
         [
-            Code = "=PBIRESTAPIComm.GetDatasetRefreshScheduleInGroup(""xxx-xxxx-yyxa..."",""xxx-xxxx-yyxa..."")",
+            Code = "=PBIRESTAPIComm.GetDatasetRefreshScheduleInGroup(""xxx-xxxx-abcd..."",""xxx-xxxx-efgh..."")",
             Result = "Defined as https://learn.microsoft.com/en-us/rest/api/power-bi/datasets/get-refresh-schedule-in-group#refreshschedule"
         ]
     }
@@ -774,7 +1281,7 @@ ExecuteQueryType = type function (
             Documentation.FieldCaption = "Dataset ID",
             Documentation.FieldDescription = "The Dataset ID",
             Documentation.SampleValues = {
-                "xxx-xxxx-yyxa..."
+                "xxx-xxxx-abcd..."
             }
         ]
     ),
@@ -811,7 +1318,7 @@ ExecuteQueryType = type function (
     Columns that are fully qualified in the query will be returned with a fully qualified name, for example, MyTable[MyColumn]. Columns that are renamed or created in the query will be returned within square bracket, for example, [MyNewColumn].",
     Documentation.Examples = {
         [
-            Code = "=PBIRESTAPIComm.ExecuteQuery(""xxx-xxxx-yyxa..."",""VALUES(Table[Column])"",""example@somedomain.com"")",
+            Code = "=PBIRESTAPIComm.ExecuteQuery(""xxx-xxxx-abcd..."",""VALUES(Table[Column])"",""example@somedomain.com"")",
             Result = "Defined as https://learn.microsoft.com/en-us/rest/api/power-bi/datasets/execute-queries-in-group#datasetexecutequeriesqueryresult"
         ]
     }
@@ -858,7 +1365,7 @@ ExecuteQueryInGroupType = type function (
             Documentation.FieldCaption = "Group ID",
             Documentation.FieldDescription = "The workspace ID.",
             Documentation.SampleValues = {
-                "xxx-xxxx-yyxa..."
+                "xxx-xxxx-abcd..."
             }
         ]
     ),    
@@ -867,7 +1374,7 @@ ExecuteQueryInGroupType = type function (
             Documentation.FieldCaption = "Dataset ID",
             Documentation.FieldDescription = "The Dataset ID",
             Documentation.SampleValues = {
-                "xxx-xxxx-yyxa..."
+                "xxx-xxxx-efgh..."
             }
         ]
     ),
@@ -904,7 +1411,7 @@ ExecuteQueryInGroupType = type function (
     Columns that are fully qualified in the query will be returned with a fully qualified name, for example, MyTable[MyColumn]. Columns that are renamed or created in the query will be returned within square bracket, for example, [MyNewColumn].",
     Documentation.Examples = {
         [
-            Code = "=PBIRESTAPIComm.ExecuteQuery(""xxx-xxxx-yyxa..."",""xxx-xxxx-yyxa..."",""VALUES(Table[Column])"",""example@somedomain.com"")",
+            Code = "=PBIRESTAPIComm.ExecuteQuery(""xxx-xxxx-abcd..."",""xxx-xxxx-efgh..."",""VALUES(Table[Column])"",""example@somedomain.com"")",
             Result = "Defined as https://learn.microsoft.com/en-us/rest/api/power-bi/datasets/execute-queries-in-group#datasetexecutequeriesqueryresult"
         ]
     }
@@ -962,7 +1469,7 @@ GetReportPageInGroupType = type function (
             Documentation.FieldCaption = "Group ID",
             Documentation.FieldDescription = "The workspace ID.",
             Documentation.SampleValues = {
-                "xxx-xxxx-yyxa..."
+                "xxx-xxxx-abcd..."
             }
         ]
     ),
@@ -971,7 +1478,7 @@ GetReportPageInGroupType = type function (
             Documentation.FieldCaption = "Report ID",
             Documentation.FieldDescription = "The Report ID.",
             Documentation.SampleValues = {
-                "xxx-xxxx-yyxa..."
+                "xxx-xxxx-efgh..."
             }
         ]
     ),
@@ -989,7 +1496,7 @@ GetReportPageInGroupType = type function (
     Documentation.LongDescription = "Returns the specified page within the specified report from the specified workspace.",
     Documentation.Examples = {
         [
-            Code = "=PBIRESTAPIComm.GetReportPageInGroup(""xxx-xxxx-yyxa..."",""xxx-xxxx-yyxa..."",""ReportSection"")",
+            Code = "=PBIRESTAPIComm.GetReportPageInGroup(""xxx-xxxx-abcd..."",""xxx-xxxx-efgh..."",""ReportSection"")",
             result = "Defined as https://learn.microsoft.com/en-us/rest/api/power-bi/reports/get-page-in-group#page"
         ]
     }
@@ -1014,7 +1521,7 @@ GetReportPagesInGroupType = type function (
             Documentation.FieldCaption = "Group ID",
             Documentation.FieldDescription = "The workspace ID.",
             Documentation.SampleValues = {
-                "xxx-xxxx-yyxa..."
+                "xxx-xxxx-abcd..."
             }
         ]
     ),
@@ -1023,7 +1530,7 @@ GetReportPagesInGroupType = type function (
             Documentation.FieldCaption = "Report ID",
             Documentation.FieldDescription = "The Report ID.",
             Documentation.SampleValues = {
-                "xxx-xxxx-yyxa..."
+                "xxx-xxxx-efgh..."
             }
         ]
     )   
@@ -1032,7 +1539,7 @@ GetReportPagesInGroupType = type function (
     Documentation.LongDescription = "Returns a list of pages within the specified report from the specified workspace.",
     Documentation.Examples = {
         [
-            Code = "=PBIRESTAPIComm.GetReportPagesInGroup(""xxx-xxxx-yyxa..."",""xxx-xxxx-yyxa..."")",
+            Code = "=PBIRESTAPIComm.GetReportPagesInGroup(""xxx-xxxx-abcd..."",""xxx-xxxx-efgh..."")",
             Result = "Defined as https://learn.microsoft.com/en-us/rest/api/power-bi/reports/get-pages-in-group#pages"
         ]
     }
@@ -1057,7 +1564,7 @@ GetReportInGroupType = type function (
             Documentation.FieldCaption = "Group ID",
             Documentation.FieldDescription = "The workspace ID.",
             Documentation.SampleValues = {
-                "xxx-xxxx-yyxa..."
+                "xxx-xxxx-abcd..."
             }
         ]
     ),
@@ -1066,7 +1573,7 @@ GetReportInGroupType = type function (
             Documentation.FieldCaption = "Report ID",
             Documentation.FieldDescription = "The Report ID.",
             Documentation.SampleValues = {
-                "xxx-xxxx-yyxa..."
+                "xxx-xxxx-efgh..."
             }
         ]
     )   
@@ -1075,7 +1582,7 @@ GetReportInGroupType = type function (
     Documentation.LongDescription = "Returns the specified report from the specified workspace.",
     Documentation.Examples = {
         [
-            Code = "=PBIRESTAPIComm.GetReportInGroup(""xxx-xxxx-yyxa..."",""xxx-xxxx-yyxa..."",""ReportSection"")",
+            Code = "=PBIRESTAPIComm.GetReportInGroup(""xxx-xxxx-abcd..."",""xxx-xxxx-efgh..."",""ReportSection"")",
             Result = "Defined as https://learn.microsoft.com/en-us/rest/api/power-bi/reports/get-report-in-group#report"
         ]
     }
@@ -1100,7 +1607,7 @@ GetReportsInGroupType = type function (
             Documentation.FieldCaption = "Group ID",
             Documentation.FieldDescription = "The workspace ID.",
             Documentation.SampleValues = {
-                "xxx-xxxx-yyxa..."
+                "xxx-xxxx-abcd..."
             }
         ]
     )  
@@ -1109,7 +1616,7 @@ GetReportsInGroupType = type function (
     Documentation.LongDescription = "Returns a list of reports from the specified workspace. Since paginated reports (RDL) don't have a dataset, the dataset ID value in the API response for paginated reports isn't displayed.",
     Documentation.Examples = {
         [
-            Code = "=PBIRESTAPIComm.GetReportsInGroup(""xxx-xxxx-yyxa..."")",
+            Code = "=PBIRESTAPIComm.GetReportsInGroup(""xxx-xxxx-abcd..."")",
             Result = "Defined as https://learn.microsoft.com/en-us/rest/api/power-bi/reports/get-reports-in-group#reports"
         ]
     }
@@ -1138,7 +1645,7 @@ GetGroupUsersType = type function (
             Documentation.FieldCaption = "Group ID",
             Documentation.FieldDescription = "The workspace ID.",
             Documentation.SampleValues = {
-                "xxx-xxxx-yyxa..."
+                "xxx-xxxx-abcd..."
             }
         ]
     )  
@@ -1147,7 +1654,7 @@ GetGroupUsersType = type function (
     Documentation.LongDescription = "Returns a list of users that have access to the specified workspace.",
     Documentation.Examples = {
         [
-            Code = "=PBIRESTAPIComm.GetGroupUsers(""xxx-xxxx-yyxa..."")",
+            Code = "=PBIRESTAPIComm.GetGroupUsers(""xxx-xxxx-abcd..."")",
             Result = "Defined as https://learn.microsoft.com/en-us/rest/api/power-bi/groups/get-group-users#groupusers"
         ]
     }
@@ -1171,7 +1678,7 @@ GetGroupsType = type function (
             Documentation.FieldCaption = "Filter",
             Documentation.FieldDescription = "Filters the results, based on a boolean condition.",
             Documentation.SampleValues = {
-                "xxx-xxxx-yyxa..."
+                "xxx-xxxx-abcd..."
             }
         ]
     ),
@@ -1198,7 +1705,7 @@ GetGroupsType = type function (
     Documentation.LongDescription = "Returns a list of workspaces the user has access to.",
     Documentation.Examples = {
         [
-            Code = "=PBIRESTAPIComm.GetGroups(""xxx-xxxx-yyxa..."")",
+            Code = "=PBIRESTAPIComm.GetGroups(""xxx-xxxx-abcd..."")",
             Result = "Defined as https://learn.microsoft.com/en-us/rest/api/power-bi/groups/get-groups#groups"
         ]
     }
@@ -1255,7 +1762,7 @@ GetPipelineType = type function (
             Documentation.FieldCaption = "Pipeline ID",
             Documentation.FieldDescription = "The deployment pipeline ID.",
             Documentation.SampleValues = {
-                "xxx-xxxx-yyxa..."
+                "xxx-xxxx-abcd..."
             }
         ]
     ),
@@ -1273,7 +1780,7 @@ GetPipelineType = type function (
     Documentation.LongDescription = "Returns the specified deployment pipeline.",
     Documentation.Examples = {
         [
-            Code = "=PBIRESTAPIComm.GetPipeline(""xxx-xxxx-yyxa..."")",
+            Code = "=PBIRESTAPIComm.GetPipeline(""xxx-xxxx-abcd..."")",
             Result = "Defined as https://learn.microsoft.com/en-us/rest/api/power-bi/pipelines/get-pipeline#pipeline"
         ]
     }
@@ -1301,7 +1808,7 @@ GetPipelineOperationType = type function (
             Documentation.FieldCaption = "Pipeline ID",
             Documentation.FieldDescription = "The deployment pipeline ID.",
             Documentation.SampleValues = {
-                "xxx-xxxx-yyxa..."
+                "xxx-xxxx-abcd..."
             }
         ]
     ),
@@ -1310,7 +1817,7 @@ GetPipelineOperationType = type function (
             Documentation.FieldCaption = "Operation ID",
             Documentation.FieldDescription = "The operation ID.",
             Documentation.SampleValues = {
-                "xxx-xxxx-yyxa..."
+                "xxx-xxxx-efgh..."
             }
         ]
     )              
@@ -1319,7 +1826,7 @@ GetPipelineOperationType = type function (
     Documentation.LongDescription = "Returns the details of the specified deploy operation performed on the specified deployment pipeline, including the deployment execution plan.",
     Documentation.Examples = {
         [
-            Code = "=PBIRESTAPIComm.GetPipelineOperation(""xxx-xxxx-yyxa..."",""xxx-xxxx-yyxb..."")",
+            Code = "=PBIRESTAPIComm.GetPipelineOperation(""xxx-xxxx-abcd..."",""xxx-xxxx-efgh..."")",
             Result = "Defined as https://learn.microsoft.com/en-us/rest/api/power-bi/pipelines/get-pipeline-operation#pipelineoperation"
         ]
     }
@@ -1345,7 +1852,7 @@ GetPipelineOperationsType = type function (
             Documentation.FieldCaption = "Pipeline ID",
             Documentation.FieldDescription = "The deployment pipeline ID.",
             Documentation.SampleValues = {
-                "xxx-xxxx-yyxa..."
+                "xxx-xxxx-abcd..."
             }
         ]
     )              
@@ -1354,7 +1861,7 @@ GetPipelineOperationsType = type function (
     Documentation.LongDescription = "Returns a list of the up-to-20 most recent deploy operations performed on the specified deployment pipeline.",
     Documentation.Examples = {
         [
-            Code = "=PBIRESTAPIComm.GetPipelineOperations(""xxx-xxxx-yyxa..."")",
+            Code = "=PBIRESTAPIComm.GetPipelineOperations(""xxx-xxxx-abcd..."")",
             Result = "Defined as https://learn.microsoft.com/en-us/rest/api/power-bi/pipelines/get-pipeline-operations#pipelineoperations"
         ]
     }
@@ -1380,7 +1887,7 @@ GetPipelineStageArtifactsType = type function (
             Documentation.FieldCaption = "Pipeline ID",
             Documentation.FieldDescription = "The deployment pipeline ID.",
             Documentation.SampleValues = {
-                "xxx-xxxx-yyxa..."
+                "xxx-xxxx-abcd..."
             }
         ]
     ),
@@ -1398,7 +1905,7 @@ GetPipelineStageArtifactsType = type function (
     Documentation.LongDescription = "Returns the supported items from the workspace assigned to the specified stage of the specified deployment pipeline.",
     Documentation.Examples = {
         [
-            Code = "=PBIRESTAPIComm.GetPipelineStageArtifacts(""xxx-xxxx-yyxa..."",""0"")",
+            Code = "=PBIRESTAPIComm.GetPipelineStageArtifacts(""xxx-xxxx-abcd..."",""0"")",
             Result = "Defined as https://learn.microsoft.com/en-us/rest/api/power-bi/pipelines/get-pipeline-stage-artifacts#pipelinestageartifacts"
         ]
     }
@@ -1428,7 +1935,7 @@ GetPipelineStagesType = type function (
             Documentation.FieldCaption = "Pipeline ID",
             Documentation.FieldDescription = "The deployment pipeline ID.",
             Documentation.SampleValues = {
-                "xxx-xxxx-yyxa..."
+                "xxx-xxxx-abcd..."
             }
         ]
     )                   
@@ -1437,7 +1944,7 @@ GetPipelineStagesType = type function (
     Documentation.LongDescription = "Returns the stages of the specified deployment pipeline.",
     Documentation.Examples = {
         [
-            Code = "=PBIRESTAPIComm.GetPipelineStages(""xxx-xxxx-yyxa..."")",
+            Code = "=PBIRESTAPIComm.GetPipelineStages(""xxx-xxxx-abcd..."")",
             Result = "Defined as https://learn.microsoft.com/en-us/rest/api/power-bi/pipelines/get-pipeline-stages#pipelinestages"
         ]
     }
@@ -1463,7 +1970,7 @@ GetPipelineUsersType = type function (
             Documentation.FieldCaption = "Pipeline ID",
             Documentation.FieldDescription = "The deployment pipeline ID.",
             Documentation.SampleValues = {
-                "xxx-xxxx-yyxa..."
+                "xxx-xxxx-abcd..."
             }
         ]
     )                   
@@ -1472,7 +1979,7 @@ GetPipelineUsersType = type function (
     Documentation.LongDescription = "Returns a list of users that have access to the specified deployment pipeline.",
     Documentation.Examples = {
         [
-            Code = "=PBIRESTAPIComm.GetPipelineUsers(""xxx-xxxx-yyxa..."")",
+            Code = "=PBIRESTAPIComm.GetPipelineUsers(""xxx-xxxx-abcd..."")",
             Result = "Defined as https://learn.microsoft.com/en-us/rest/api/power-bi/pipelines/get-pipeline-users#pipelineusers"
         ]
     }
@@ -1513,6 +2020,588 @@ GetPipelines = () =>
 /*** End GetPipelines ***/
 
 /*****************
+    GoalValues
+*****************/
+
+/*** GetScorecardGoalValuesInGroup ***/
+shared PBIRESTAPIComm.GetScorecardGoalValuesInGroup = Value.ReplaceType(
+    GetScorecardGoalValuesInGroup,
+    GetScorecardGoalValuesInGroupType
+);
+
+GetScorecardGoalValuesInGroupType = type function (
+    optional groupdId as (
+        type text meta [
+            Documentation.FieldCaption = "Group ID",
+            Documentation.FieldDescription = "The unique identifier of the workspace",
+            Documentation.SampleValues = {
+                "xxx-xxxx-abcd..."
+            }
+        ]
+    ),
+    optional scorecardId as (
+        type text meta [
+            Documentation.FieldCaption = "Scorecard ID",
+            Documentation.FieldDescription = "The unique identifier of the scorecard",
+            Documentation.SampleValues = {
+                "xxx-xxxx-efgh..."
+            }
+        ]
+    ),
+    optional goalId as (
+        type text meta [
+            Documentation.FieldCaption = "Goal ID",
+            Documentation.FieldDescription = "The unique identifier of the goal",
+            Documentation.SampleValues = {
+                "xxx-xxxx-ijkl..."
+            }
+        ]
+    ),          
+    optional expand as (
+        type number meta [
+            Documentation.FieldCaption = "Expand",
+            Documentation.FieldDescription = "Accepts a comma-separated list of data types, which will be expanded inline in the response. Supports notes.",
+            Documentation.SampleValues = {
+                "notes"
+            }
+        ]
+    )             
+) as table meta [
+    Documentation.Name = "PBIRESTAPIComm.GetScorecardGoalValuesInGroup",
+    Documentation.LongDescription = "Reads goal value check-ins.",
+    Documentation.Examples = {
+        [
+            Code = "=PBIRESTAPIComm.GetScorecardGoalValuesInGroup(""xxx-xxxx-abcd..."",""xxx-xxxx-efgh..."",""xxx-xxxx-ijkl..."",""notes"")",
+            Result = "Defined as https://learn.microsoft.com/en-us/rest/api/power-bi/goalvalues_(preview)/get#goalvalues"
+        ]
+    }
+];
+
+GetScorecardGoalValuesInGroup = (optional groupdId as text, optional scorecardId as text, optional goalId as text, optional expand as text) =>
+    let
+        //Build Query String (clean input)
+        expandQS = if(expand <> null) then "$expand=" & Text.Clean(Text.Replace(expand," ","")) else "",
+        // Figure out if we need to concatenate top filter
+        queryString = if(expandQS <> "") 
+                        then "?" & expandQS
+                        else "",
+        // Now query with parameters
+        result = GetJSON("v1.0/myorg/groups/" & groupdId & "/scorecards(" & scorecardId & ")/goals(" & goalId & ")/goalValues" & queryString)
+    in
+        result;
+/*** End GetScorecardGoalValuesInGroup ***/        
+
+/*** GetScorecardGoalValueInGroup ***/
+shared PBIRESTAPIComm.GetScorecardGoalValueInGroup = Value.ReplaceType(
+    GetScorecardGoalValueInGroup,
+    GetScorecardGoalValueInGroupType
+);
+
+GetScorecardGoalValueInGroupType = type function (
+    optional groupdId as (
+        type text meta [
+            Documentation.FieldCaption = "Group ID",
+            Documentation.FieldDescription = "The unique identifier of the workspace",
+            Documentation.SampleValues = {
+                "xxx-xxxx-abcd..."
+            }
+        ]
+    ),
+    optional scorecardId as (
+        type text meta [
+            Documentation.FieldCaption = "Scorecard ID",
+            Documentation.FieldDescription = "The unique identifier of the scorecard",
+            Documentation.SampleValues = {
+                "xxx-xxxx-efgh..."
+            }
+        ]
+    ),
+    optional goalId as (
+        type text meta [
+            Documentation.FieldCaption = "Goal ID",
+            Documentation.FieldDescription = "The unique identifier of the goal",
+            Documentation.SampleValues = {
+                "xxx-xxxx-ijkl..."
+            }
+        ]
+    ),
+    optional timestamp as (
+        type text meta [
+            Documentation.FieldCaption = "Timestamp",
+            Documentation.FieldDescription = "The timestamp for the value of the goal",
+            Documentation.SampleValues = {
+                "2021-12-14T00:00:00Z"
+            }
+        ]
+    ),               
+    optional expand as (
+        type number meta [
+            Documentation.FieldCaption = "Expand",
+            Documentation.FieldDescription = "Accepts a comma-separated list of data types, which will be expanded inline in the response. Supports notes.",
+            Documentation.SampleValues = {
+                "notes"
+            }
+        ]
+    )             
+) as table meta [
+    Documentation.Name = "PBIRESTAPIComm.GetScorecardGoalValueInGroup",
+    Documentation.LongDescription = "Reads a goal value check-in by a UTC date timestamp.",
+    Documentation.Examples = {
+        [
+            Code = "=PBIRESTAPIComm.GetScorecardGoalValueInGroup(""xxx-xxxx-abcd..."",""xxx-xxxx-efgh..."",""xxx-xxxx-ijkl..."",""2021-12-14T00:00:00Z"",""notes"")",
+            Result = "Defined as https://learn.microsoft.com/en-us/rest/api/power-bi/goalvalues_(preview)/get-by-id#goalvalue"
+        ]
+    }
+];
+
+GetScorecardGoalValueInGroup = (optional groupdId as text, optional scorecardId as text, optional goalId as text, optional timestamp as datetimezone, optional expand as text) =>
+    let
+        //Build Query String (clean input)
+        expandQS = if(expand <> null) then "$expand=" & Text.Clean(Text.Replace(expand," ","")) else "",
+        // Figure out if we need to concatenate top filter
+        queryString = if(expandQS <> "") 
+                        then "?" & expandQS
+                        else "",
+        // Now query with parameters
+        result = GetJSON("v1.0/myorg/groups/" & groupdId & "/scorecards(" & scorecardId & ")/goals(" & goalId & ")/goalValues(" & DateTimeZone.ToText(timestamp,[Format="O"]) & ")" & queryString)
+    in
+        result;
+/*****************
+    Goals
+*****************/
+
+/*** GetScorecardGoalsInGroup ***/
+shared PBIRESTAPIComm.GetScorecardGoalsInGroup = Value.ReplaceType(
+    GetScorecardGoalsInGroup,
+    GetScorecardGoalsInGroupType
+);
+
+GetScorecardGoalsInGroupType = type function (
+    optional groupdId as (
+        type text meta [
+            Documentation.FieldCaption = "Group ID",
+            Documentation.FieldDescription = "The unique identifier of the workspace",
+            Documentation.SampleValues = {
+                "xxx-xxxx-abcd..."
+            }
+        ]
+    ),
+    optional scorecardId as (
+        type text meta [
+            Documentation.FieldCaption = "Scorecard ID",
+            Documentation.FieldDescription = "The unique identifier of the scorecard",
+            Documentation.SampleValues = {
+                "xxx-xxxx-efgh..."
+            }
+        ]
+    ),             
+    optional expand as (
+        type number meta [
+            Documentation.FieldCaption = "Expand",
+            Documentation.FieldDescription = "Accepts a comma-separated list of data types, which will be expanded inline in the response. Supports notes.",
+            Documentation.SampleValues = {
+                "goals($expand=goalValues, aggregations)"
+            }
+        ]
+    ),
+    optional select as (
+        type number meta [
+            Documentation.FieldCaption = "Select",
+            Documentation.FieldDescription = "Allows the clients to select specific properties from the server.",
+            Documentation.SampleValues = {
+                "name,level"
+            }
+        ]
+    )                  
+) as table meta [
+    Documentation.Name = "PBIRESTAPIComm.GetScorecardGoalsInGroup",
+    Documentation.LongDescription = "Returns a list of goals from a scorecard.",
+    Documentation.Examples = {
+        [
+            Code = "=PBIRESTAPIComm.GetScorecardGoalsInGroup(""xxx-xxxx-abcd..."",""xxx-xxxx-efgh..."",,""goals($expand=goalValues, aggregations)"",""name,level"")",
+            Result = "Defined as https://learn.microsoft.com/en-us/rest/api/power-bi/goals_(preview)/get#goals"
+        ]
+    }
+];
+
+GetScorecardGoalsInGroup = (optional groupdId as text, optional scorecardId as text, optional expand as text, optional select as text) =>
+    let
+        //Build Query String (clean input)
+        expandQS = if(expand <> null) then "$expand=" & Text.Clean(Text.Replace(expand," ","")) else "",
+        selectQS = if(select <> null) then "$select=" & Text.Clean(Text.Replace(select," ","")) else "",
+        // Figure out if we need to concatenate expand and select filters        
+        queryString = if(expandQS <> "" and selectQS <> "") 
+                        then "?" & expandQS & "&" & selectQS
+                        else
+                            // 10
+                            if(expandQS <> "")
+                                then 
+                                    "?" & expandQS
+                                else
+                                // 01
+                                    if(selectQS <> "")
+                                        then
+                                            "?" & selectQS
+                                        else
+                                            "",        
+        
+        // Now query with parameters
+        result = GetJSON("v1.0/myorg/groups/" & groupdId & "/scorecards(" & scorecardId & ")/goals" & queryString)
+    in
+        result;
+/*** End GetScorecardGoalsInGroup ***/
+
+/*** GetScorecardGoalInGroup ***/
+shared PBIRESTAPIComm.GetScorecardGoalInGroup = Value.ReplaceType(
+    GetScorecardGoalInGroup,
+    GetScorecardGoalInGroupType
+);
+
+GetScorecardGoalInGroupType = type function (
+    optional groupdId as (
+        type text meta [
+            Documentation.FieldCaption = "Group ID",
+            Documentation.FieldDescription = "The unique identifier of the workspace",
+            Documentation.SampleValues = {
+                "xxx-xxxx-abcd..."
+            }
+        ]
+    ),
+    optional scorecardId as (
+        type text meta [
+            Documentation.FieldCaption = "Scorecard ID",
+            Documentation.FieldDescription = "The unique identifier of the scorecard",
+            Documentation.SampleValues = {
+                "xxx-xxxx-efgh..."
+            }
+        ]
+    ),
+    optional goalId as (
+        type text meta [
+            Documentation.FieldCaption = "Goal ID",
+            Documentation.FieldDescription = "The unique identifier of the goal",
+            Documentation.SampleValues = {
+                "xxx-xxxx-ijkl..."
+            }
+        ]
+    ),              
+    optional expand as (
+        type number meta [
+            Documentation.FieldCaption = "Expand",
+            Documentation.FieldDescription = "Accepts a comma-separated list of data types, which will be expanded inline in the response. Supports notes.",
+            Documentation.SampleValues = {
+                "goals($expand=goalValues, aggregations)"
+            }
+        ]
+    )             
+) as table meta [
+    Documentation.Name = "PBIRESTAPIComm.GetScorecardGoalInGroup",
+    Documentation.LongDescription = "Returns a goal by ID from a scorecard.",
+    Documentation.Examples = {
+        [
+            Code = "=PBIRESTAPIComm.GetScorecardGoalInGroup(""xxx-xxxx-abcd..."",""xxx-xxxx-efgh..."",""xxx-xxxx-ijkl..."",""goals($expand=goalValues, aggregations)"")",
+            Result = "Defined as https://learn.microsoft.com/en-us/rest/api/power-bi/goalvalues_(preview)/get-by-id#goalvalue"
+        ]
+    }
+];
+
+GetScorecardGoalInGroup = (optional groupdId as text, optional scorecardId as text, optional goalId as text, optional expand as text) =>
+    let
+        //Build Query String (clean input)
+        expandQS = if(expand <> null) then "$expand=" & Text.Clean(Text.Replace(expand," ","")) else "",
+        // Figure out if we need to concatenate top filter
+        queryString = if(expandQS <> "") 
+                        then "?" & expandQS
+                        else "",
+        // Now query with parameters
+        result = GetJSON("v1.0/myorg/groups/" & groupdId & "/scorecards(" & scorecardId & ")/goals(" & goalId & ")" & queryString)
+    in
+        result;
+/*** End GetScorecardGoalInGroup ***/
+
+/*** GetScorecardGoalRefreshHistoryInGroup ***/
+shared PBIRESTAPIComm.GetScorecardGoalRefreshHistoryInGroup = Value.ReplaceType(
+    GetScorecardGoalRefreshHistoryInGroup,
+    GetScorecardGoalRefreshHistoryInGroupType
+);
+
+GetScorecardGoalRefreshHistoryInGroupType = type function (
+    optional groupdId as (
+        type text meta [
+            Documentation.FieldCaption = "Group ID",
+            Documentation.FieldDescription = "The unique identifier of the workspace",
+            Documentation.SampleValues = {
+                "xxx-xxxx-abcd..."
+            }
+        ]
+    ),
+    optional scorecardId as (
+        type text meta [
+            Documentation.FieldCaption = "Scorecard ID",
+            Documentation.FieldDescription = "The unique identifier of the scorecard",
+            Documentation.SampleValues = {
+                "xxx-xxxx-efgh..."
+            }
+        ]
+    ),
+    optional goalId as (
+        type text meta [
+            Documentation.FieldCaption = "Goal ID",
+            Documentation.FieldDescription = "The unique identifier of the goal",
+            Documentation.SampleValues = {
+                "xxx-xxxx-ijkl..."
+            }
+        ]
+    )             
+) as table meta [
+    Documentation.Name = "PBIRESTAPIComm.GetScorecardGoalRefreshHistoryInGroup",
+    Documentation.LongDescription = "Reads refresh history of a connected goal.",
+    Documentation.Examples = {
+        [
+            Code = "=PBIRESTAPIComm.GetScorecardGoalRefreshHistoryInGroup(""xxx-xxxx-abcd..."",""xxx-xxxx-efgh..."",""xxx-xxxx-ijkl..."")",
+            Result = "Defined as https://learn.microsoft.com/en-us/rest/api/power-bi/goals_(preview)/get-refresh-history#goalrefreshhistories"
+        ]
+    }
+];
+
+GetScorecardGoalRefreshHistoryInGroup = (optional groupdId as text, optional scorecardId as text, optional goalId as text) =>
+    let
+        result = GetJSON("v1.0/myorg/groups/" & groupdId & "/scorecards(" & scorecardId & ")/goals(" & goalId & ")/GetRefreshHistory()")
+    in
+        result;
+/*** EndScorecardGoalRefreshHistoryInGroup ***/
+
+
+/*****************
+    GoalStatusRules
+*****************/
+
+/*** GetScorecardGoalsStatusRulesInGroup ***/
+shared PBIRESTAPIComm.GetScorecardGoalsStatusRulesInGroup = Value.ReplaceType(
+    GetScorecardGoalsStatusRulesInGroup,
+    GetScorecardGoalsStatusRulesInGroupType
+);
+
+GetScorecardGoalsStatusRulesInGroupType = type function (
+    optional groupdId as (
+        type text meta [
+            Documentation.FieldCaption = "Group ID",
+            Documentation.FieldDescription = "The unique identifier of the workspace",
+            Documentation.SampleValues = {
+                "xxx-xxxx-abcd..."
+            }
+        ]
+    ),
+    optional scorecardId as (
+        type text meta [
+            Documentation.FieldCaption = "Scorecard ID",
+            Documentation.FieldDescription = "The unique identifier of the scorecard",
+            Documentation.SampleValues = {
+                "xxx-xxxx-efgh..."
+            }
+        ]
+    ),
+    optional goalId as (
+        type text meta [
+            Documentation.FieldCaption = "Goal ID",
+            Documentation.FieldDescription = "The unique identifier of the goal",
+            Documentation.SampleValues = {
+                "xxx-xxxx-ijkl..."
+            }
+        ]
+    )             
+) as table meta [
+    Documentation.Name = "PBIRESTAPIComm.GetScorecardGoalsStatusRulesInGroup",
+    Documentation.LongDescription = "Returns status rules of a goal.",
+    Documentation.Examples = {
+        [
+            Code = "=PBIRESTAPIComm.GetScorecardGoalsStatusRulesInGroup(""xxx-xxxx-abcd..."",""xxx-xxxx-efgh..."",""xxx-xxxx-ijkl..."")",
+            Result = "Defined as https://learn.microsoft.com/en-us/rest/api/power-bi/goalsstatusrules_(preview)/get#goals.rules.goalstatusrules"
+        ]
+    }
+];
+
+GetScorecardGoalsStatusRulesInGroup = (optional groupdId as text, optional scorecardId as text, optional goalId as text) =>
+    let
+        result = GetJSON("v1.0/myorg/groups/" & groupdId & "/scorecards(" & scorecardId & ")/goals(" & goalId & ")/statusRules")
+    in
+        result;
+/*** End GetScorecardGoalStatusInGroup ***/
+
+/*****************
+    Scorecards
+*****************/
+
+/*** GetScorecardsInGroup ***/
+shared PBIRESTAPIComm.GetScorecardsInGroup = Value.ReplaceType(
+    GetScorecardsInGroup,
+    GetScorecardsInGroupType
+);
+
+GetScorecardsInGroupType = type function (
+    optional groupdId as (
+        type text meta [
+            Documentation.FieldCaption = "Group ID",
+            Documentation.FieldDescription = "The unique identifier of the workspace",
+            Documentation.SampleValues = {
+                "xxx-xxxx-abcd..."
+            }
+        ]
+    ),
+    optional top as (
+        type number meta [
+            Documentation.FieldCaption = "Top",
+            Documentation.FieldDescription = "Returns only the first n results.",
+            Documentation.SampleValues = {
+                "5"
+            }
+        ]
+    )             
+) as table meta [
+    Documentation.Name = "PBIRESTAPIComm.GetScorecardsInGroup",
+    Documentation.LongDescription = "Returns a list of scorecards from a workspace.",
+    Documentation.Examples = {
+        [
+            Code = "=PBIRESTAPIComm.GetScorecardsInGroup(""xxx-xxxx-abcd..."",""5"")",
+            Result = "Defined as https://learn.microsoft.com/en-us/rest/api/power-bi/scorecards_(preview)/get#scorecards"
+        ]
+    }
+];
+
+GetScorecardsInGroup = (optional groupdId as text, optional top as number) =>
+    let
+        //Build Query String
+        topQS = if(top <> null) then "$top=" & Number.ToText(top) else "",
+        // Figure out if we need to concatenate top filter
+        queryString = if(topQS <> "") 
+                        then "?" & topQS
+                        else "",
+
+        // Now query with parameters
+        result = GetJSON("v1.0/myorg/groups/" & groupdId & "/scorecards" & queryString)
+    in
+        result;
+/*** End GetScorecardsInGroup ***/
+
+/*** GetScorecardInGroup ***/
+shared PBIRESTAPIComm.GetScorecardInGroup = Value.ReplaceType(
+    GetScorecardInGroup,
+    GetScorecardInGroupType
+);
+
+GetScorecardInGroupType = type function (
+    optional groupdId as (
+        type text meta [
+            Documentation.FieldCaption = "Group ID",
+            Documentation.FieldDescription = "The unique identifier of the workspace",
+            Documentation.SampleValues = {
+                "xxx-xxxx-abcd..."
+            }
+        ]
+    ),
+    optional scorecardId as (
+        type text meta [
+            Documentation.FieldCaption = "Scorecard ID",
+            Documentation.FieldDescription = "The unique identifier of the scorecard",
+            Documentation.SampleValues = {
+                "xxx-xxxx-efgh..."
+            }
+        ]
+    ),    
+    optional expand as (
+        type number meta [
+            Documentation.FieldCaption = "Expand",
+            Documentation.FieldDescription = "Accepts a comma-separated list of data types, which will be expanded inline in the response. Supports goals, goalValues, aggregations, and notes.",
+            Documentation.SampleValues = {
+                "goals($expand=goalValues, aggregations)"
+            }
+        ]
+    )             
+) as table meta [
+    Documentation.Name = "PBIRESTAPIComm.GetScorecardInGroup",
+    Documentation.LongDescription = "Returns a scorecard with ID.",
+    Documentation.Examples = {
+        [
+            Code = "=PBIRESTAPIComm.GetScorecardInGroup(""xxx-xxxx-abcd..."",""xxx-xxxx-efgh..."",""goals($expand=goalValues, aggregations)"")",
+            Result = "Defined as https://learn.microsoft.com/en-us/rest/api/power-bi/scorecards_(preview)/get-by-id#scorecard"
+        ]
+    }
+];
+
+GetScorecardInGroup = (optional groupdId as text, optional scorecardId as text, optional expand as text) =>
+    let
+        //Build Query String (clean input)
+        expandQS = if(expand <> null) then "$expand=" & Text.Clean(Text.Replace(expand," ","")) else "",
+        // Figure out if we need to concatenate top filter
+        queryString = if(expandQS <> "") 
+                        then "?" & expandQS
+                        else "",
+        // Now query with parameters
+        result = GetJSON("v1.0/myorg/groups/" & groupdId & "/scorecards(" & scorecardId & ")" & queryString)
+    in
+        result;
+/*** End GetScorecardInGroup ***/
+
+/*** GetScorecardByReportIdInGroup ***/
+shared PBIRESTAPIComm.GetScorecardByReportIdInGroup = Value.ReplaceType(
+    GetScorecardByReportIdInGroup,
+    GetScorecardByReportIdInGroupType
+);
+
+GetScorecardByReportIdInGroupType = type function (
+    optional groupdId as (
+        type text meta [
+            Documentation.FieldCaption = "Group ID",
+            Documentation.FieldDescription = "The unique identifier of the workspace",
+            Documentation.SampleValues = {
+                "xxx-xxxx-abcd..."
+            }
+        ]
+    ),
+    optional reportId as (
+        type text meta [
+            Documentation.FieldCaption = "Report ID",
+            Documentation.FieldDescription = "The ID of the internal report associated with the scorecard",
+            Documentation.SampleValues = {
+                "xxx-xxxx-efgh..."
+            }
+        ]
+    ),
+    optional expand as (
+        type number meta [
+            Documentation.FieldCaption = "Expand",
+            Documentation.FieldDescription = "Accepts a comma-separated list of data types, which will be expanded inline in the response. Supports goals, goalValues, aggregations, and notes.",
+            Documentation.SampleValues = {
+                "goals($expand=goalValues, aggregations)"
+            }
+        ]
+    )                 
+) as table meta [
+    Documentation.Name = "PBIRESTAPIComm.GetScorecardByReportIdInGroup",
+    Documentation.LongDescription = "Reads a scorecard associated with an internal report ID.",
+    Documentation.Examples = {
+        [
+            Code = "=PBIRESTAPIComm.GetScorecardInGroup(""xxx-xxxx-abcd..."",""xxx-xxxx-efgh..."",""goals($expand=goalValues, aggregations)"")",
+            Result = "Defined as https://learn.microsoft.com/en-us/rest/api/power-bi/scorecards_(preview)/get-scorecard-by-report-id#scorecard"
+        ]
+    }
+];
+
+GetScorecardByReportIdInGroup = (optional groupdId as text, optional reportId as text, optional expand as text) =>
+    let
+        //Build Query String (clean input)
+        expandQS = if(expand <> null) then "$expand=" & Text.Clean(Text.Replace(expand," ","")) else "",
+        // Figure out if we need to concatenate top filter
+        queryString = if(expandQS <> "") 
+                        then "?" & expandQS
+                        else "",
+        // Now query with parameters
+        result = GetJSON("v1.0/myorg/groups/" & groupdId & "/scorecards/GetScorecardByReportId(reportId=" & reportId & ")" & queryString)
+    in
+        result;
+/*** End GetScorecardByReportIdInGroup ***/
+
+/*****************
     HELPER FUNCTIONS
 *****************/
 GetJSON = (optional relPath as text) =>
@@ -1544,7 +2633,7 @@ PostJSON = (optional params as record) =>
 
 // Data Source Kind description
 PBIRESTAPIComm = [
-    TestConnection = (dataSourcePath) =>  { "PBIRESTAPIComm.Navigation"},
+    TestConnection = (dataSourcePath) =>  { "PBIRESTAPIComm.FunctionCatalog"},
     Authentication = [
         Aad = [
             AuthorizationUri = "https://login.windows.net/common/oauth2/authorize",
