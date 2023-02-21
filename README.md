@@ -91,6 +91,26 @@ Not all functions from the Power BI REST API have been implemented.  Here are th
 | GetDashboardsInApp            | Returns a list of dashboards from the specified app.  | [Apps - Get Dashboards](https://learn.microsoft.com/en-us/rest/api/power-bi/apps/get-dashboards) |
 | GetReportInApp                | Returns the specified report from the specified app.  | [Apps - Get Reports](https://learn.microsoft.com/en-us/rest/api/power-bi/apps/get-report) |
 | GetReportsInApp               | Returns a list of reports from the specified app.  | [Apps - Get Reports](https://learn.microsoft.com/en-us/rest/api/power-bi/apps/get-reports) |
+| GetTileInApp           | Returns the specified tile within the specified dashboard from the specified app. Supported tiles include datasets and live tiles that contain an entire report page.   | [Apps - Get Tile](https://learn.microsoft.com/en-us/rest/api/power-bi/apps/get-tile)
+| GetTilesInApp               | Returns a list of tiles within the specified dashboard from the specified app.  | [Apps - Get Tiles](https://learn.microsoft.com/en-us/rest/api/power-bi/apps/get-tiles) |
+
+### Dashboards
+| End Point                      | Description  | MSDN Documentation |
+|:-----------------------------|:-------------|:------------------|
+| GetDashboardInGroup                  | Returns the specified dashboard from the specified workspace.  | [Dashboards - Get Dashboard In Group](https://learn.microsoft.com/en-us/rest/api/power-bi/dashboards/get-dashboard-in-group) |
+| GetDashboardsInGroup                  | Returns a list of dashboards from the specified workspace.  | [Dashboards - Get Dashboards In Group](https://learn.microsoft.com/en-us/rest/api/power-bi/dashboards/get-dashboards-in-group) |
+| GetDashboardTileInGroup                  |Returns the specified tile within the specified dashboard from the specified workspace. Supported tiles include datasets and live tiles that contain an entire report page.  | [Dashboards - Get Dashboard Tile In Group](https://learn.microsoft.com/en-us/rest/api/power-bi/dashboards/get-tile-in-group) |
+| GetDashboardTilesInGroup                  |Returns a list of tiles within the specified dashboard from the specified workspace. Supported tiles include datasets and live tiles that contain an entire report page.  | [Dashboards - Get Dashboard Tiles In Group](https://learn.microsoft.com/en-us/rest/api/power-bi/dashboards/get-tiles-in-group) |
+
+### Dataflows
+| End Point                      | Description  | MSDN Documentation |
+|:-----------------------------|:-------------|:------------------|
+| GetDataflowInGroup                  | Exports the specified dataflow definition to a JSON file.  | [Dataflows - Get Dataflow](https://learn.microsoft.com/en-us/rest/api/power-bi/dataflows/get-dataflow) |
+| GetDataflowDataSourcesInGroup                 | Returns a list of data sources for the specified dataflow.  | [Dataflows - Get Dataflow Data Sources](https://learn.microsoft.com/en-us/rest/api/power-bi/dataflows/get-dataflow-data-sources) |
+| GetDataflowTransactionsInGroup                 | Returns a list of transactions for the specified dataflow.  | [Dataflows - Get Dataflow Transactions](https://learn.microsoft.com/en-us/rest/api/power-bi/dataflows/get-dataflow-transactions) |
+| GetDataflowsInGroup                 | Returns a list of all dataflows from the specified workspace.  | [Dataflows - Get Dataflows](https://learn.microsoft.com/en-us/rest/api/power-bi/dataflows/get-dataflows) |
+| GetUpstreamDataflowsInGroup                 | Returns a list of upstream dataflows for the specified dataflow.  | [Dataflows - Get Upstream Dataflows In Group](https://learn.microsoft.com/en-us/rest/api/power-bi/dataflows/get-upstream-dataflows-in-group) |
+
 
 ### Datasets
 | End Point                      | Description  | MSDN Documentation |
@@ -108,6 +128,25 @@ Not all functions from the Power BI REST API have been implemented.  Here are th
 | GetDatasetRefreshExecutionDetailsInGroup             | Returns execution details of an enhanced refresh operation for the specified dataset from the specified workspace.  | [Datasets - Get Refresh Execution Details In Group](https://learn.microsoft.com/en-us/rest/api/power-bi/datasets/get-refresh-execution-details-in-group) |
 | GetDatasetRefreshHistoryInGroup| Returns the refresh history for the specified dataset from the specified workspace.  | [Datasets - Get Refresh History](https://learn.microsoft.com/en-us/rest/api/power-bi/datasets/get-refresh-history-in-group) |
 | GetDatasetRefreshScheduleInGroup|      Description  | [Datasets - Get Refresh Schedule In Group](https://learn.microsoft.com/en-us/rest/api/power-bi/datasets/get-refresh-schedule-in-group) |
+
+### GoalValues (Preview)
+| End Point                      | Description  | MSDN Documentation |
+|:-----------------------------|:-------------|:------------------|
+| GetScorecardGoalValuesInGroup                 | Reads goal value check-ins.  | [GoalValues - Get](https://learn.microsoft.com/en-us/rest/api/power-bi/goalvalues_(preview)/get) |
+| GetScorecardGoalValueInGroup                 | Reads a goal value check-in by a UTC date timestamp.  | [GoalValues - Get By ID](https://learn.microsoft.com/en-us/rest/api/power-bi/goalvalues_(preview)/get-by-id) |
+
+### Goals (Preview)
+| End Point                      | Description  | MSDN Documentation |
+|:-----------------------------|:-------------|:------------------|
+| GetScorecardGoalsInGroup                 | Returns a list of goals from a scorecard.  | [Goals - Get](https://learn.microsoft.com/en-us/rest/api/power-bi/goals_(preview)/get) |
+| GetScorecardGoalInGroup                 | Returns a goal by ID from a scorecard.  | [Goals - Get By ID](https://learn.microsoft.com/en-us/rest/api/power-bi/goals_(preview)/get-by-id) |
+| GetScorecardGoalRefreshHistoryInGroup   | Reads refresh history of a connected goal.  | [Goals - Get Refresh History](https://learn.microsoft.com/en-us/rest/api/power-bi/goals_(preview)/get-refresh-history) |
+
+### Goals Status Rules (Preview)
+| End Point                      | Description  | MSDN Documentation |
+|:-----------------------------|:-------------|:------------------|
+| GetScorecardGoalsStatusRulesInGroup                 | Returns status rules of a goal.  | [GoalsStatusRules - Get](https://learn.microsoft.com/en-us/rest/api/power-bi/goalsstatusrules_(preview)/get) |
+
 
 ### Groups
 | End Point                      | Description  | MSDN Documentation |
@@ -134,6 +173,14 @@ GetPipelines           | Returns a list of deployment pipelines that the user ha
 | GetPagesInGroup          | Returns a list of pages within the specified report from the specified workspace.  | [Reports - Get Pages In Group](https://learn.microsoft.com/en-us/rest/api/power-bi/reports/get-pages-in-group) |
 | GetReportInGroup          | Returns the specified report from the specified workspace.  | [Reports - Get Report In Group](https://learn.microsoft.com/en-us/rest/api/power-bi/reports/get-report-in-group) |
 | GetReportsInGroup         | Returns a list of reports from the specified workspace.  | [Reports - Get Reports In Group](https://learn.microsoft.com/en-us/rest/api/power-bi/reports/get-reports-in-group) |
+
+### Scorecards (Preview)
+
+| End Point                      | Description  | MSDN Documentation |
+|:-----------------------------|:-------------|:------------------|
+| GetScorecardsInGroup         | Returns a list of scorecards from a workspace.  | [Scorecards - Get](https://learn.microsoft.com/en-us/rest/api/power-bi/scorecards_(preview)/get) |
+| GetScorecardInGroup         | Returns a scorecard with ID.  | [Scorecards - Get By ID](https://learn.microsoft.com/en-us/rest/api/power-bi/scorecards_(preview)/get-by-id) |
+| GetScorecardByReportIdInGroup         | Reads a scorecard associated with an internal report ID.  | [Scorecards - Get Scorecard By Report Id](https://learn.microsoft.com/en-us/rest/api/power-bi/scorecards_(preview)/get-scorecard-by-report-id) |
 
 ### On-Premises Gateway
 
