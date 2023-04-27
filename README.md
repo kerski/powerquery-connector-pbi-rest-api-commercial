@@ -127,7 +127,8 @@ Not all functions from the Power BI REST API have been implemented.  Here are th
 | GetDatasetParametersInGroup             | Returns a list of parameters for the specified dataset from the specified workspace.  | [Datasets - Get Parameters In Group](https://learn.microsoft.com/en-us/rest/api/power-bi/datasets/get-parameters-in-group) |
 | GetDatasetRefreshExecutionDetailsInGroup             | Returns execution details of an enhanced refresh operation for the specified dataset from the specified workspace.  | [Datasets - Get Refresh Execution Details In Group](https://learn.microsoft.com/en-us/rest/api/power-bi/datasets/get-refresh-execution-details-in-group) |
 | GetDatasetRefreshHistoryInGroup| Returns the refresh history for the specified dataset from the specified workspace.  | [Datasets - Get Refresh History](https://learn.microsoft.com/en-us/rest/api/power-bi/datasets/get-refresh-history-in-group) |
-| GetDatasetRefreshScheduleInGroup|      Description  | [Datasets - Get Refresh Schedule In Group](https://learn.microsoft.com/en-us/rest/api/power-bi/datasets/get-refresh-schedule-in-group) |
+| GetDatasetRefreshScheduleInGroup|      Returns the refresh schedule for the specified dataset from the specified workspace.  | [Datasets - Get Refresh Schedule In Group](https://learn.microsoft.com/en-us/rest/api/power-bi/datasets/get-refresh-schedule-in-group) |
+|GetDatasetSyncStatusInGroup |      Returns the sync status information of the read-only replica and read/write dataset. (<b>Preview</b>: Power BI Dataset Scale-Out)  | [Datasets - Get Dataset Sync Status In Group ](https://learn.microsoft.com/en-us/power-bi/enterprise/service-premium-scale-out#enable-scale-out-for-your-workspace) |
 
 ### GoalValues (Preview)
 | End Point                      | Description  | MSDN Documentation |

@@ -54,6 +54,7 @@ let
             {"GetDatasetRefreshExecutionDetailsInGroup","GetDatasetRefreshExecutionDetailsInGroup",PBIRESTAPIComm.GetDatasetRefreshExecutionDetailsInGroup,"Function","GetDatasetRefreshExecutionDetailsInGroup",true},
             {"GetDatasetRefreshHistoryInGroup","GetDatasetRefreshHistoryInGroup",PBIRESTAPIComm.GetDatasetRefreshHistoryInGroup,"Function","GetDatasetRefreshHistoryInGroup",true},
             {"GetDatasetRefreshScheduleInGroup","GetDatasetRefreshScheduleInGroup",PBIRESTAPIComm.GetDatasetRefreshScheduleInGroup,"Function","GetDatasetRefreshScheduleInGroup",true},
+            {"GetDatasetSyncStatusInGroup","GetDatasetSyncStatusInGroup",PBIRESTAPIComm.GetDatasetSyncStatusInGroup,"Function","GetDatasetSyncStatusInGroup",true},
             {"ExecuteQuery","ExecuteQuery",PBIRESTAPIComm.ExecuteQuery,"Function","ExecuteQuery",true},
             {"ExecuteQueryInGroup","ExecuteQueryInGroup",PBIRESTAPIComm.ExecuteQueryInGroup,"Function","ExecuteQueryInGroup",true},
             /* Reports */
@@ -1268,6 +1269,49 @@ GetDatasetRefreshScheduleInGroup = (optional groupId as text , optional datasetI
     in
         result;
 /*** End GetDatasetRefreshScheduleInGroup***/
+
+/*** GetDatasetSyncStatusInGroup ***/
+shared PBIRESTAPIComm.GetDatasetSyncStatusInGroup = Value.ReplaceType(
+    GetDatasetSyncStatusInGroup,
+    GetDatasetSyncStatusInGroupType
+);
+
+GetDatasetSyncStatusInGroupType = type function (
+    optional groupId as (
+        type text meta [
+            Documentation.FieldCaption = "Group ID",
+            Documentation.FieldDescription = "The workspace ID.",
+            Documentation.SampleValues = {
+                "xxx-xxxx-abcd..."
+            }
+        ]
+    ),
+    optional datasetId as (
+        type text meta [
+            Documentation.FieldCaption = "Dataset ID",
+            Documentation.FieldDescription = "The Dataset ID.",
+            Documentation.SampleValues = {
+                "xxx-xxxx-efgh..."
+            }
+        ]
+    )
+) as table meta [
+    Documentation.Name = "PBIRESTAPIComm.GetDatasetSyncStatusInGroup",
+    Documentation.LongDescription = "Returns the sync status information of the read-only replica and read/write dataset.",
+    Documentation.Examples = {
+        [
+            Code = "=PBIRESTAPIComm.GetDatasetSyncStatusInGroup(""xxx-xxxx-abcd..."",""xxx-xxxx-efgh..."")",
+            Result = "Defined as "
+        ]
+    }
+];
+
+GetDatasetSyncStatusInGroup = (optional groupId as text , optional datasetId as text) =>
+    let
+        result = GetJSON("v1.0/myorg/groups/" & groupId & "/datasets/" & datasetId & "/syncStatus")
+    in
+        result;
+/*** End GetDatasetSyncStatusInGroup ***/
 
 /*** ExecuteQuery ***/
 shared PBIRESTAPIComm.ExecuteQuery = Value.ReplaceType(
