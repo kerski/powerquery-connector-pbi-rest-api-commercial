@@ -6,28 +6,31 @@ shared MyExtension.UnitTest =
     Source = PBIRESTAPIComm.FunctionCatalog(),
     
     /*Variables*/ 
-    AppTestID = "{APP TEST ID}",
-    AppDashboardTestID = "{APP DASHBOARD TEST ID}",
-    AppDashboardTileTestID = "{APP DASHBOARD TILE TEST ID}",
-    AppReportTestID = "{APP REPORT TEST ID}",
-    GroupTestID = "{GROUP TEST ID}",
+    AppTestID = "{INSERT VALUE}",
+    AppDashboardTestID = "{INSERT VALUE}",
+    AppDashboardTileTestID = "{INSERT VALUE}",
+    AppReportTestID = "{INSERT VALUE}",
+    GroupTestID = "{INSERT VALUE}",
     GroupNameFilter = "name eq 'Custom Connector Test'",
-    DatasetTestID = "{DATASET TEST ID}",
-    ReportTestID = "{REPORT Test ID}",
+    DatasetTestID = "{INSERT VALUE}",
+    ReportTestID = "{INSERT VALUE}",
     ReportTestName = "SampleModel",
-    PipelineTestID = "{PIPELINE TEST ID}",
-    EnchancedRefreshTestID = "{REFRESH TEST ID}",
-    DashboardTestID = "{DASHBOARD TEST ID}",
-    DashboardTileTestID = "{DASHBOARD TILE TEST ID}",
-    DataFlowTestID = "{DATAFLOW TEST ID}",
-    DownstreamDataflowTestID = "{DOWNSTREAM DATAFLOW TEST ID}",
-    ScorecardOneTestID = "{SCORECARD ONE TEST ID}",
-    ScorecardOneGoalTestID = "{SCORECARD ONE GOAL TEST ID}", 
-    ScorecardOneGoalWithRefreshTestID = "{SCORECARD ONE GOAL WITH REFRESH TEST ID}",   
-    ScorecardTwoTestID = "{SCORECARD TWO TEST ID}",
-    ScorecardInternalReportId = "{SCORECARD INTERNAL REPORT ID}",
-    ScorecardOneGoalTimestampID = "{SCORECARD ONE GOAL TIMESTAMP ID}",
-    
+    PipelineTestID = "{INSERT VALUE}",
+    EnchancedRefreshTestID = "{INSERT VALUE}",
+    DashboardTestID = "{INSERT VALUE}",
+    DashboardTileTestID = "{INSERT VALUE}",
+    DataflowTestID = "{INSERT VALUE}",
+    DownstreamDataflowTestID = "{INSERT VALUE}",
+    ScorecardOneTestID = "{INSERT VALUE}",
+    ScorecardOneGoalTestID = "{INSERT VALUE}", 
+    ScorecardOneGoalWithRefreshTestID = "{INSERT VALUE}",   
+    ScorecardTwoTestID = "{INSERT VALUE}",
+    ScorecardInternalReportId = "{INSERT VALUE}",
+    ScorecardOneGoalTimestampID = #datetimezone(2023,2,18,0,0,0,0,0),
+    // Sync Status Workspace ID
+    ScaleOutWorkspaceID = "{INSERT VALUE}",
+    ScaleOutDatasetID = "{INSERT VALUE}",
+
     // Extracts Function from group
     _GetFunction = (_func_key as text) =>
         let
@@ -63,6 +66,7 @@ shared MyExtension.UnitTest =
     GetDatasetsInGroup = _GetFunction("GetDatasetsInGroup"),
     GetDatasetDatasourcesInGroup = _GetFunction("GetDatasetDatasourcesInGroup"),
     GetDatasetDirectQueryRefreshScheduleInGroup = _GetFunction("GetDatasetDirectQueryRefreshScheduleInGroup"),
+    GetDatasetSyncStatusInGroup = _GetFunction("GetDatasetSyncStatusInGroup"),
     GetDatasetParametersInGroup = _GetFunction("GetDatasetParametersInGroup"),
     GetDatasetRefreshExecutionDetailsInGroup = _GetFunction("GetDatasetRefreshExecutionDetailsInGroup"),
     GetDatasetRefreshHistoryInGroup = _GetFunction("GetDatasetRefreshHistoryInGroup"),
@@ -339,7 +343,17 @@ shared MyExtension.UnitTest =
              true,
              Value.Is(GetDatasetDirectQueryRefreshScheduleInGroup,Function.Type)
         ),
-        /*Fact("GetDatasetDirectQueryRefreshScheduleInGroup Should Be Correct Metadata",
+        /* GetDatasetSyncStatusInGroup */
+        Fact("GetDatasetSyncStatusInGroup Should Be a Function",
+             true,
+             Value.Is(GetDatasetSyncStatusInGroup,Function.Type)
+        ), 
+        Fact("GetDatasetSyncStatusInGroup Should Have a CommitVersion Property and Value",
+             true,
+             Text.Length(Number.ToText(Json.Document(GetDatasetSyncStatusInGroup(ScaleOutWorkspaceID,ScaleOutDatasetID))[#"commitVersion"])) > 0
+        ),                
+        /*
+        Fact("GetDatasetDirectQueryRefreshScheduleInGroup Should Be Correct Metadata",
              "datasources",
              Text.AfterDelimiter(Json.Document(GetDatasetDirectQueryRefreshScheduleInGroup(GroupTestID,DatasetTestID))[#"@odata.context"],"#")
         ),*/
@@ -523,7 +537,7 @@ shared MyExtension.UnitTest =
      /*****************
      GOALS STATUS RULES
      *****************/               
-        /* GetScorecardGoalsStatusRulesInGroup */
+          /* GetScorecardGoalsStatusRulesInGroup */
         Fact("GetScorecardGoalsStatusRulesInGroup Should Be a Function",
              true,
              Value.Is(GetScorecardGoalsStatusRulesInGroup,Function.Type)
@@ -531,7 +545,7 @@ shared MyExtension.UnitTest =
         Fact("GetScorecardGoalsStatusRulesInGroup Should Be Correct Metadata",
             "scorecards(" & ScorecardOneTestID & ")/metrics(" & ScorecardOneGoalTestID & ")/statusRules",
             Text.AfterDelimiter(Json.Document(GetScorecardGoalsStatusRulesInGroup(GroupTestID,ScorecardOneTestID,ScorecardOneGoalTestID))[#"@odata.context"],"#")
-        ),    
+        ),  
      /*****************
      GROUPS
      *****************/             
@@ -657,10 +671,12 @@ shared MyExtension.UnitTest =
              true,
              Value.Is(GetScorecardInGroup,Function.Type)
         ),
+        /*
+        Disable after odatacontext dissappeared
         Fact("GetScorecardInGroup Should Be Correct Metadata",
              "scorecards/$entity",
              Text.AfterDelimiter(Json.Document(GetScorecardInGroup(GroupTestID,ScorecardOneTestID))[#"@odata.context"],"#")
-        ),
+        ),*/
         Fact("GetScorecardInGroup Should Return a goals property",
              true,
              List.Count(Json.Document(GetScorecardInGroup(GroupTestID,ScorecardOneTestID,"goals($expand=goalValues)"))[#"goals"]) > 0
