@@ -4,6 +4,11 @@ This Custom Data Connector wraps many of the "Get" endpoints in the Power BI API
 
 Each function returns a JSON body and not a table of data.  This decision was made to provide flexibility in converting the JSON body to tabular data when 1) the API responses are changed by Microsoft or 2) the API responses differ between commercial and sovereign clouds (e.g., GCC, DoD, etc.). 
 
+
+If you like this work and want to support my costs for licensing and testing, you can contribute to my page on 
+<p align="center"><a href="https://www.buymeacoffee.com/jkerski5" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/default-orange.png" alt="Buy Me A Coffee" height="41" width="174"></a></p>
+There's no pressure, and this code is still under MIT license and free to use whether you contribute or not.  
+
 ## Table of Contents
 
 1. [Installation](#installation)
