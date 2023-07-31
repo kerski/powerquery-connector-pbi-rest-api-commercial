@@ -1301,14 +1301,14 @@ GetDatasetSyncStatusInGroupType = type function (
     Documentation.Examples = {
         [
             Code = "=PBIRESTAPIComm.GetDatasetSyncStatusInGroup(""xxx-xxxx-abcd..."",""xxx-xxxx-efgh..."")",
-            Result = "Defined as "
+            Result = "Defined as: https://powerbi.microsoft.com/en-us/blog/announcing-the-public-preview-of-automatic-replica-synchronization-for-dataset-scale-out/"
         ]
     }
 ];
 
 GetDatasetSyncStatusInGroup = (optional groupId as text , optional datasetId as text) =>
     let
-        result = GetJSON("v1.0/myorg/groups/" & groupId & "/datasets/" & datasetId & "/syncStatus")
+        result = GetJSON("v1.0/myorg/groups/" & groupId & "/datasets/" & datasetId & "/queryScaleOut/syncStatus")
     in
         result;
 /*** End GetDatasetSyncStatusInGroup ***/
