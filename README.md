@@ -4,11 +4,6 @@ This Custom Data Connector wraps many of the "Get" endpoints in the Power BI API
 
 Each function returns a JSON body and not a table of data.  This decision was made to provide flexibility in converting the JSON body to tabular data when 1) the API responses are changed by Microsoft or 2) the API responses differ between commercial and sovereign clouds (e.g., GCC, DoD, etc.). 
 
-
-If you like this work and want to support my costs for licensing and testing, you can contribute to my page on 
-<p align="center"><a href="https://www.buymeacoffee.com/jkerski5" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/default-orange.png" alt="Buy Me A Coffee" height="41" width="174"></a></p>
-There's no pressure, and this code is still under MIT license and free to use whether you contribute or not.  
-
 ## Table of Contents
 
 1. [Installation](#installation)
@@ -31,12 +26,12 @@ There's no pressure, and this code is still under MIT license and free to use wh
 Because this is a custom data connector you have to choose this option in order to use it in Power BI Desktop.
 
 3. Close all Power BI Desktop instances on your local machine.  You are often prompted to do so by Power BI Desktop.
-4. Copy the [.mez file](https://github.com/kerski/powerquery-connector-pbi-rest-api-commercial/releases/latest) to your folder "Documents\Power BI Desktop\Custom Connectors".  If the folder does not exist, create it first.
+4. Copy the [.mez file](https://github.com/kerski/powerquery-connector-pbi-rest-api-commercial/releases/download/v.1.2.0-beta/powerquery-connector-pbi-rest-api-commercial.mez) to your folder "Documents\Power BI Desktop\Custom Connectors".  If the folder does not exist, create it first.
 5. Open Power BI Desktop.
 6. Select Get Data option.
 7. Navigate to the "Other" section and you should see the "Connect to Power BI REST API" connector.
 
-![Other->PBIRESTAPIComm](./documentation/images/pbi-other-connect.png)
+![Other->PBIRESTAPIGCC](./documentation/images/pbi-other-connect.png)
 
 8. Select the connector and press the "Connect" button.
 9. You may be prompted with the pop-up below. Choose "Continue".

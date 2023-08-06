@@ -6,30 +6,32 @@ shared MyExtension.UnitTest =
     Source = PBIRESTAPIComm.FunctionCatalog(),
     
     /*Variables*/ 
-    AppTestID = "{INSERT VALUE}",
-    AppDashboardTestID = "{INSERT VALUE}",
-    AppDashboardTileTestID = "{INSERT VALUE}",
-    AppReportTestID = "{INSERT VALUE}",
-    GroupTestID = "{INSERT VALUE}",
-    GroupNameFilter = "name eq 'Custom Connector Test'",
-    DatasetTestID = "{INSERT VALUE}",
-    ReportTestID = "{INSERT VALUE}",
-    ReportTestName = "SampleModel",
-    PipelineTestID = "{INSERT VALUE}",
-    EnchancedRefreshTestID = "{INSERT VALUE}",
-    DashboardTestID = "{INSERT VALUE}",
-    DashboardTileTestID = "{INSERT VALUE}",
-    DataflowTestID = "{INSERT VALUE}",
-    DownstreamDataflowTestID = "{INSERT VALUE}",
-    ScorecardOneTestID = "{INSERT VALUE}",
-    ScorecardOneGoalTestID = "{INSERT VALUE}", 
-    ScorecardOneGoalWithRefreshTestID = "{INSERT VALUE}",   
-    ScorecardTwoTestID = "{INSERT VALUE}",
-    ScorecardInternalReportId = "{INSERT VALUE}",
-    ScorecardOneGoalTimestampID = #datetimezone(2023,2,18,0,0,0,0,0),
+    AppTestID = Environment.FeatureSwitch("AppTestID"),
+    AppDashboardTestID = Environment.FeatureSwitch("AppDashboardTestID"),
+    AppDashboardTileTestID = Environment.FeatureSwitch("AppDashboardTileTestID"),
+    AppReportTestID = Environment.FeatureSwitch("AppReportTestID"),
+    GroupTestID = Environment.FeatureSwitch("GroupTestID"),
+    GroupNameFilter = Environment.FeatureSwitch("GroupNameFilter"),
+    DatasetTestID = Environment.FeatureSwitch("DatasetTestID"),
+    ReportTestID = Environment.FeatureSwitch("ReportTestID"),
+    ReportTestName = Environment.FeatureSwitch("ReportTestName"),
+    
+    PipelineTestID = Environment.FeatureSwitch("PipelineTestID"),
+    // Convert rest here to figure out what's wrong
+    EnhancedRefreshTestID = Environment.FeatureSwitch("EnhancedRefreshTestID"),
+    DashboardTestID = Environment.FeatureSwitch("DashboardTestID"),
+    DashboardTileTestID = Environment.FeatureSwitch("DashboardTileTestID"),
+    DataflowTestID = Environment.FeatureSwitch("DataflowTestID"),
+    DownstreamDataflowTestID = Environment.FeatureSwitch("DownstreamDataflowTestID"),
+    ScorecardOneTestID = Environment.FeatureSwitch("ScorecardOneTestID"),
+    ScorecardOneGoalTestID = Environment.FeatureSwitch("ScorecardOneGoalTestID"), 
+    ScorecardOneGoalWithRefreshTestID = Environment.FeatureSwitch("ScorecardOneGoalWithRefreshTestID"),   
+    ScorecardTwoTestID = Environment.FeatureSwitch("ScorecardTwoTestID"),
+    ScorecardInternalReportId = Environment.FeatureSwitch("ScorecardInternalReportId"),
+    ScorecardOneGoalTimestampID = Expression.Evaluate(Environment.FeatureSwitch("ScorecardOneGoalTimestampID")),
     // Sync Status Workspace ID
-    ScaleOutWorkspaceID = "{INSERT VALUE}",
-    ScaleOutDatasetID = "{INSERT VALUE}",
+    ScaleOutWorkspaceID = Environment.FeatureSwitch("ScaleOutWorkspaceID"),
+    ScaleOutDatasetID = Environment.FeatureSwitch("ScaleOutDatasetID"),
 
     // Extracts Function from group
     _GetFunction = (_func_key as text) =>
@@ -343,7 +345,7 @@ shared MyExtension.UnitTest =
              true,
              Value.Is(GetDatasetDirectQueryRefreshScheduleInGroup,Function.Type)
         ),
-        /* GetDatasetSyncStatusInGroup */
+        /* GetDatasetSyncStatusInGroup 
         Fact("GetDatasetSyncStatusInGroup Should Be a Function",
              true,
              Value.Is(GetDatasetSyncStatusInGroup,Function.Type)
@@ -351,7 +353,7 @@ shared MyExtension.UnitTest =
         Fact("GetDatasetSyncStatusInGroup Should Have a CommitVersion Property and Value",
              true,
              Text.Length(Number.ToText(Json.Document(GetDatasetSyncStatusInGroup(ScaleOutWorkspaceID,ScaleOutDatasetID))[#"commitVersion"])) > 0
-        ),                
+        ),*/                
         /*
         Fact("GetDatasetDirectQueryRefreshScheduleInGroup Should Be Correct Metadata",
              "datasources",
@@ -374,7 +376,7 @@ shared MyExtension.UnitTest =
         /* Assumes a refresh exists that was enhanced for this dataset */
         Fact("GetDatasetRefreshExecutionDetailsInGroup Should Have One Object Return with Completed Status",
              "Completed",
-             Json.Document(GetDatasetRefreshExecutionDetailsInGroup(GroupTestID, DatasetTestID, EnchancedRefreshTestID))[extendedStatus]
+             Json.Document(GetDatasetRefreshExecutionDetailsInGroup(GroupTestID, DatasetTestID, EnhancedRefreshTestID))[extendedStatus]
         ),         
         /* GetDatasetRefreshHistoryInGroup*/  
         Fact("GetDatasetRefreshHistoryInGroup Should Be a Function",

@@ -1,0 +1,25 @@
+# Variable 'PPU_PASSWORD' was defined in the Variables tab
+# Variable 'PPU_USERNAME' was defined in the Variables tab
+jobs:
+- job: Job_1
+  displayName: Agent job 1
+  pool:
+    vmImage: windows-2019
+  steps:
+  - checkout: self
+  - task: PowerShell@2
+    displayName: Continuous Integration
+    inputs:
+      filePath: CI/Scripts/Run-PQTests.ps1
+    env:
+      PPU_PASSWORD: $(PPU_PASSWORD) # Maps the secret variable
+  - task: CopyFiles@2
+    displayName: 'Copy Files to: $(Build.ArtifactStagingDirectory)'
+    inputs:
+      SourceFolder: '.'
+      TargetFolder: '$(Build.ArtifactStagingDirectory)'
+
+  - task: PublishBuildArtifacts@1
+    inputs:
+      pathtoPublish: '$(Build.ArtifactStagingDirectory)'
+      artifactName: project
