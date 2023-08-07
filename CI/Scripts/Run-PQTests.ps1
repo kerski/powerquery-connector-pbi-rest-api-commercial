@@ -1,17 +1,39 @@
 ﻿<#
-    Author: John Kerski
-    Description: This script runs the proof-of-concept Continuous Integration of a custom connector.
+Author: John Kerski
+.SYNOPSIS
+    This script runs the proof-of-concept Continuous Integration of a custom connector.
+
+.DESCRIPTION
+    This script runs the proof-of-concept Continuous Integration of a custom connector.
 
     Dependencies: Premium Per User license purchased and assigned to UserName and UserName has admin right to workspace.
+.PARAMETER Compile
+    Default is True, and makes sure Compile step should happen.
+
+    Use Compile set to False when you just want to run tests.
+
+    Example: 
+        -Compile $False
+
+.EXAMPLE
+    ./Run-PBITests.ps1
+    ./Run-PBITests.ps1 -Compile $False
 #>
-#Install Powershell Module if Needed
+param([Boolean]$Compile)
+
+# Set default compile settings
+if(!$Compile){
+    $Compile = $True
+}
+
+# Install Powershell Module if Needed
 if (Get-Module -ListAvailable -Name "MicrosoftPowerBIMgmt") {
     Write-Host "MicrosoftPowerBIMgmt already installed"
 } else {
     Install-Module -Name MicrosoftPowerBIMgmt -Scope CurrentUser -AllowClobber -Force
 }
 
-#Check if we are running locally or in a pipeline
+# Check if we are running locally or in a pipeline
 if(${env:BUILD_SOURCEVERSION}) # assumes this only exists in Azure Pipelines
 {
     # Get from environment
@@ -27,7 +49,7 @@ if(${env:BUILD_SOURCEVERSION}) # assumes this only exists in Azure Pipelines
 else { # Runs Local so will ask to sign in
     Connect-PowerBIServiceAccount
 }
-          
+       
 # Setup Test File Path
 $RelTestFilePath = ".\\CI\\Scripts\\variables.test.json"
 $TestFilePath = (Resolve-Path -Path $RelTestFilePath).Path
@@ -45,12 +67,23 @@ $AccessToken = $AccessToken.Values.Substring(7)
 $RelExtFilePath = ".\\bin\\AnyCPU\\Debug\\powerquery-connector-pbi-rest-api-commercial.mez"
 $RelQueryCredFilePath = ".\\PBIRESTAPICommCredTemplate.query.pq"
 $RelQueryFilePath =  ".\\PBIRESTAPIComm.query.pq"
-
 # Get full path because PQTest expects that
 $ExtensionFilePath = (Resolve-Path -Path $RelExtFilePath).Path
 $QueryCredFilePath = (Resolve-Path -Path $RelQueryCredFilePath).Path
 $QueryFilePath = (Resolve-Path -Path $RelQueryFilePath).Path
 
+# Compile Check    
+if($Compile -eq $True){
+
+    # Setup target compile
+    $Target = $($ExtensionFilePath -replace ".mez", "")
+    Write-Host "Compile Connector: $($Target)"
+
+    # Run compile
+    .\CI\PQTest\MakePQX.exe compile --target $Target
+}
+  
+# Setup credentials
 $Template = $null
 $Template = .\CI\PQTest\PQTest.exe credential-template --extension $ExtensionFilePath `
                                              --queryFile $QueryCredFilePath
