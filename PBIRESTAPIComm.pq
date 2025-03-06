@@ -9,7 +9,7 @@
     custom connector.  For more information on installing a custom data connector with a gateway
     please see: https://learn.microsoft.com/en-us/power-bi/connect-data/service-gateway-custom-connectors .
 */
-[Version = "1.2.2"]
+[Version = "1.3.0"]
 section PBIRESTAPIComm;
 [
     DataSource.Kind = "PBIRESTAPIComm",
@@ -51,17 +51,19 @@ let
             {"GetDatasetDatasourcesInGroup","GetDatasetDatasourcesInGroup",PBIRESTAPIComm.GetDatasetDatasourcesInGroup,"Function","GetDatasetDatasourcesInGroup",true},
             {"GetDatasetDirectQueryRefreshScheduleInGroup","GetDatasetDirectQueryRefreshScheduleInGroup",PBIRESTAPIComm.GetDatasetDirectQueryRefreshScheduleInGroup,"Function","GetDatasetDirectQueryRefreshScheduleInGroup",true},
             {"GetDatasetParametersInGroup","GetDatasetParametersInGroup",PBIRESTAPIComm.GetDatasetParametersInGroup,"Function","GetDatasetParametersInGroup",true},
+            {"GetDatasetQueryScaleOutStatusInGroup","GetDatasetQueryScaleOutStatusInGroup",PBIRESTAPIComm.GetDatasetQueryScaleOutStatusInGroup,"Function","GetDatasetQueryScaleOutStatusInGroup",true},
             {"GetDatasetRefreshExecutionDetailsInGroup","GetDatasetRefreshExecutionDetailsInGroup",PBIRESTAPIComm.GetDatasetRefreshExecutionDetailsInGroup,"Function","GetDatasetRefreshExecutionDetailsInGroup",true},
             {"GetDatasetRefreshHistoryInGroup","GetDatasetRefreshHistoryInGroup",PBIRESTAPIComm.GetDatasetRefreshHistoryInGroup,"Function","GetDatasetRefreshHistoryInGroup",true},
             {"GetDatasetRefreshScheduleInGroup","GetDatasetRefreshScheduleInGroup",PBIRESTAPIComm.GetDatasetRefreshScheduleInGroup,"Function","GetDatasetRefreshScheduleInGroup",true},
-            {"GetDatasetSyncStatusInGroup","GetDatasetSyncStatusInGroup",PBIRESTAPIComm.GetDatasetSyncStatusInGroup,"Function","GetDatasetSyncStatusInGroup",true},
             {"ExecuteQuery","ExecuteQuery",PBIRESTAPIComm.ExecuteQuery,"Function","ExecuteQuery",true},
             {"ExecuteQueryInGroup","ExecuteQueryInGroup",PBIRESTAPIComm.ExecuteQueryInGroup,"Function","ExecuteQueryInGroup",true},
             /* Reports */
+            {"GetPaginatedReportDatasourcesInGroup","GetPaginatedReportDatasourcesInGroup",PBIRESTAPIComm.GetPaginatedReportDatasourcesInGroup,"Function","GetPaginatedReportDatasourcesInGroup",true},
             {"GetReportPageInGroup","GetReportPageInGroup",PBIRESTAPIComm.GetReportPageInGroup,"Function","GetReportPageInGroup",true},
             {"GetReportPagesInGroup","GetReportPagesInGroup",PBIRESTAPIComm.GetReportPagesInGroup,"Function","GetReportPagesInGroup",true},
             {"GetReportInGroup","GetReportInGroup",PBIRESTAPIComm.GetReportInGroup,"Function","GetReportInGroup",true},
             {"GetReportsInGroup","GetReportsInGroup",PBIRESTAPIComm.GetReportsInGroup,"Function","GetReportsInGroup",true},
+            {"ExportReportInGroup","ExportReportInGroup",PBIRESTAPIComm.ExportReportInGroup,"Function","ExportReportInGroup",true},
             /* Goal Values */            
             {"GetScorecardGoalValuesInGroup","GetScorecardGoalValuesInGroup",PBIRESTAPIComm.GetScorecardGoalValuesInGroup,"Function","GetScorecardGoalValuesInGroup",true},
             {"GetScorecardGoalValueInGroup","GetScorecardGoalValueInGroup",PBIRESTAPIComm.GetScorecardGoalValueInGroup,"Function","GetScorecardGoalValueInGroup",true},            
@@ -1270,13 +1272,13 @@ GetDatasetRefreshScheduleInGroup = (optional groupId as text , optional datasetI
         result;
 /*** End GetDatasetRefreshScheduleInGroup***/
 
-/*** GetDatasetSyncStatusInGroup ***/
-shared PBIRESTAPIComm.GetDatasetSyncStatusInGroup = Value.ReplaceType(
-    GetDatasetSyncStatusInGroup,
-    GetDatasetSyncStatusInGroupType
+/*** GetDatasetQueryScaleOutStatusInGroup ***/
+shared PBIRESTAPIComm.GetDatasetQueryScaleOutStatusInGroup = Value.ReplaceType(
+    GetDatasetQueryScaleOutStatusInGroup,
+    GetDatasetQueryScaleOutStatusInGroupType
 );
 
-GetDatasetSyncStatusInGroupType = type function (
+GetDatasetQueryScaleOutStatusInGroupType = type function (
     optional groupId as (
         type text meta [
             Documentation.FieldCaption = "Group ID",
@@ -1296,22 +1298,23 @@ GetDatasetSyncStatusInGroupType = type function (
         ]
     )
 ) as table meta [
-    Documentation.Name = "PBIRESTAPIComm.GetDatasetSyncStatusInGroup",
-    Documentation.LongDescription = "Returns the sync status information of the read-only replica and read/write dataset.",
+    Documentation.Name = "PBIRESTAPIComm.GetDatasetQueryScaleOutStatusInGroup",
+    Documentation.LongDescription = "Returns the query scale-out sync status for the specified dataset from the specified workspace.",
     Documentation.Examples = {
         [
-            Code = "=PBIRESTAPIComm.GetDatasetSyncStatusInGroup(""xxx-xxxx-abcd..."",""xxx-xxxx-efgh..."")",
-            Result = "Defined as: https://powerbi.microsoft.com/en-us/blog/announcing-the-public-preview-of-automatic-replica-synchronization-for-dataset-scale-out/"
+            Code = "=PBIRESTAPIComm.GetDatasetQueryScaleOutStatusInGroup(""xxx-xxxx-abcd..."",""xxx-xxxx-efgh..."")",
+            Result = "Defined as: https://learn.microsoft.com/en-us/rest/api/power-bi/datasets/get-query-scale-out-sync-status-in-group"
         ]
     }
 ];
 
-GetDatasetSyncStatusInGroup = (optional groupId as text , optional datasetId as text) =>
+GetDatasetQueryScaleOutStatusInGroup = (optional groupId as text , optional datasetId as text) =>
     let
         result = GetJSON("v1.0/myorg/groups/" & groupId & "/datasets/" & datasetId & "/queryScaleOut/syncStatus")
     in
         result;
-/*** End GetDatasetSyncStatusInGroup ***/
+
+/*** End GetDatasetQueryScaleOutStatusInGroup ***/
 
 /*** ExecuteQuery ***/
 shared PBIRESTAPIComm.ExecuteQuery = Value.ReplaceType(
@@ -1496,6 +1499,46 @@ ExecuteQueryInGroup = (optional groupId as text, optional datasetId as text, opt
 *****************/
 
 /*** GetPaginatedReportDatasourcesInGroup ***/
+shared PBIRESTAPIComm.GetPaginatedReportDatasourcesInGroup = Value.ReplaceType(
+    GetPaginatedReportDatasourcesInGroup,
+    GetPaginatedReportDatasourcesInGroupType
+);
+
+GetPaginatedReportDatasourcesInGroupType = type function (
+    optional groupId as (
+        type text meta [
+            Documentation.FieldCaption = "Group ID",
+            Documentation.FieldDescription = "The workspace ID.",
+            Documentation.SampleValues = {
+                "xxx-xxxx-abcd..."
+            }
+        ]
+    ),
+    optional reportId as (
+        type text meta [
+            Documentation.FieldCaption = "Report ID",
+            Documentation.FieldDescription = "The Report ID.",
+            Documentation.SampleValues = {
+                "xxx-xxxx-efgh..."
+            }
+        ]
+    )   
+) as table meta [
+    Documentation.Name = "PBIRESTAPIComm.GetPaginatedReportDatasourcesInGroup",
+    Documentation.LongDescription = "Returns a list of data sources for the specified paginated report (RDL) from the specified workspace.",
+    Documentation.Examples = {
+        [
+            Code = "=PBIRESTAPIComm.GetPaginatedReportDatasourcesInGroup(""xxx-xxxx-abcd..."",""xxx-xxxx-efgh..."",""ReportSection"")",
+            result = "Defined as https://learn.microsoft.com/en-us/rest/api/power-bi/reports/get-datasources-in-group"
+        ]
+    }
+];
+
+GetPaginatedReportDatasourcesInGroup = (optional groupId as text , optional reportId as text) =>
+    let
+        result = GetJSON("v1.0/myorg/groups/" & groupId & "/reports/" & reportId & "/datasources")
+    in
+        result;
 /*** End GetPaginatedReportDatasourcesInGroup ***/
 
 /*** GetReportExportToFileStatusInGroup ***/
@@ -1672,6 +1715,71 @@ GetReportsInGroup = (optional groupId as text) =>
     in
         result;
 /*** End GetReportsInGroup***/
+
+/*** ExportReportInGroup ***/
+shared PBIRESTAPIComm.ExportReportInGroup = Value.ReplaceType(
+    ExportReportInGroup,
+    ExportReportInGroupType
+);
+
+ExportReportInGroupType = type function (
+    optional groupId as (
+        type text meta [
+            Documentation.FieldCaption = "Group ID",
+            Documentation.FieldDescription = "The workspace ID.",
+            Documentation.SampleValues = {
+                "xxx-xxxx-abcd..."
+            }
+        ]
+    ),
+    optional reportId as (
+        type text meta [
+            Documentation.FieldCaption = "Report ID",
+            Documentation.FieldDescription = "The Report ID.",
+            Documentation.SampleValues = {
+                "xxx-xxxx-efgh..."
+            }
+        ]
+    ),
+    optional downloadType as (
+        type text meta [
+            Documentation.FieldCaption = "Download Type",
+            Documentation.FieldDescription = "The download type.",
+            Documentation.SampleValues = {
+                "IncludeModel or LiveConnect"
+            }
+        ]
+    ),
+    optional preferClientRouting as (
+        type text meta [
+            Documentation.FieldCaption = "Prefer Client Routing",
+            Documentation.FieldDescription = "Prefer Client Routing type.",
+            Documentation.SampleValues = {
+                "true or null"
+            }
+        ]
+    )         
+) as table meta [
+    Documentation.Name = "PBIRESTAPIComm.ExportReportInGroup",
+    Documentation.LongDescription = "Exports the specified report from the specified workspace to a Power BI .pbix or .rdl file.",
+    Documentation.Examples = {
+        [
+            Code = "=PBIRESTAPIComm.ExportReportInGroup(""xxx-xxxx-abcd..."",""xxx-xxxx-efgh..."",""IncludeModel"")",
+            result = "Defined as https://learn.microsoft.com/en-us/rest/api/power-bi/reports/export-report-in-group#response"
+        ]
+    }
+];
+
+ExportReportInGroup = (optional groupId as text , optional reportId as text, optional downloadType as text, optional preferClientRouting as logical) as binary =>
+    let
+        //Build Query String
+        downloadQS = if(downloadType <> null and downloadType <> "") then "?downloadType=" & downloadType else "?downloadType=IncludeModel",
+        // Handle preferClientRouting
+        preferQS = if(preferClientRouting = true) then "&preferClientRouting=true" else "&preferClientRouting=false",
+        result = GetFile("v1.0/myorg/groups/" & groupId & "/reports/" & reportId & "/Export" & downloadQS & preferQS)
+    in
+        result;
+/*** End ExportReportInGroup***/
 
 /*****************
     GROUPS
@@ -2648,6 +2756,20 @@ GetScorecardByReportIdInGroup = (optional groupdId as text, optional reportId as
 /*****************
     HELPER FUNCTIONS
 *****************/
+GetFile = (optional relPath as text) =>
+    let
+        params = [Headers=[Accept="application/octet-stream"], RelativePath = relPath],
+        //Get Pages
+        //Hard-coded Base URL because Power BI Service won't recognize parameter despite numerous attempts
+        webSource = Web.Contents(
+            "https://api.powerbi.com",
+            params
+        ),
+        //Convert to Json
+        result = webSource
+    in
+        result;
+
 GetJSON = (optional relPath as text) =>
     let
         params = [Headers = [#"Content-Type" = "application/json"], RelativePath = relPath],

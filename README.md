@@ -174,6 +174,7 @@ GetPipelines           | Returns a list of deployment pipelines that the user ha
 | GetPagesInGroup          | Returns a list of pages within the specified report from the specified workspace.  | [Reports - Get Pages In Group](https://learn.microsoft.com/en-us/rest/api/power-bi/reports/get-pages-in-group) |
 | GetReportInGroup          | Returns the specified report from the specified workspace.  | [Reports - Get Report In Group](https://learn.microsoft.com/en-us/rest/api/power-bi/reports/get-report-in-group) |
 | GetReportsInGroup         | Returns a list of reports from the specified workspace.  | [Reports - Get Reports In Group](https://learn.microsoft.com/en-us/rest/api/power-bi/reports/get-reports-in-group) |
+| ExportReportInGroup         | Exports the specified report from the specified workspace to a Power BI .pbix or .rdl file.  | [Reports - Export Report In Group](https://learn.microsoft.com/en-us/rest/api/power-bi/reports/export-report-in-group) |
 
 ### Scorecards (Preview)
 

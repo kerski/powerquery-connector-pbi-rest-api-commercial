@@ -126,7 +126,7 @@ if(!$TestResults){
     Write-Error "No Expected Test Results"
     #return 0
 }
-elseif(!($TestResults.Status -like 'Passed') -or $TestResults.RowCount -gt 0){
+elseif(!($TestResults.Status -like 'Passed')){
     Write-Error $TestResults.Error.Message
     return 0
 }

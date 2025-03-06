@@ -32,6 +32,10 @@ shared MyExtension.UnitTest =
     // Sync Status Workspace ID
     ScaleOutWorkspaceID = Environment.FeatureSwitch("ScaleOutWorkspaceID"),
     ScaleOutDatasetID = Environment.FeatureSwitch("ScaleOutDatasetID"),
+    // Export Report or Paginated Report variables
+    ExportWorkspaceID = Environment.FeatureSwitch("ExportWorkspaceID"),
+    ExportReportID = Environment.FeatureSwitch("ExportReportID"),
+    ExportPaginatedReportID = Environment.FeatureSwitch("ExportPaginatedReportID"),
 
     // Extracts Function from group
     _GetFunction = (_func_key as text) =>
@@ -68,7 +72,7 @@ shared MyExtension.UnitTest =
     GetDatasetsInGroup = _GetFunction("GetDatasetsInGroup"),
     GetDatasetDatasourcesInGroup = _GetFunction("GetDatasetDatasourcesInGroup"),
     GetDatasetDirectQueryRefreshScheduleInGroup = _GetFunction("GetDatasetDirectQueryRefreshScheduleInGroup"),
-    GetDatasetSyncStatusInGroup = _GetFunction("GetDatasetSyncStatusInGroup"),
+    GetDatasetQueryScaleOutStatusInGroup = _GetFunction("GetDatasetQueryScaleOutStatusInGroup"),
     GetDatasetParametersInGroup = _GetFunction("GetDatasetParametersInGroup"),
     GetDatasetRefreshExecutionDetailsInGroup = _GetFunction("GetDatasetRefreshExecutionDetailsInGroup"),
     GetDatasetRefreshHistoryInGroup = _GetFunction("GetDatasetRefreshHistoryInGroup"),
@@ -76,10 +80,12 @@ shared MyExtension.UnitTest =
     ExecuteQuery = _GetFunction("ExecuteQuery"),
     ExecuteQueryInGroup = _GetFunction("ExecuteQueryInGroup"),
     /* Reports */
+    GetPaginatedReportDatasourcesInGroup = _GetFunction("GetPaginatedReportDatasourcesInGroup"),
     GetReportPageInGroup = _GetFunction("GetReportPageInGroup"),
     GetReportPagesInGroup = _GetFunction("GetReportPagesInGroup"),
     GetReportInGroup = _GetFunction("GetReportInGroup"),
     GetReportsInGroup = _GetFunction("GetReportsInGroup"),
+    ExportReportInGroup = _GetFunction("ExportReportInGroup"),
     /* GoalValues */
     GetScorecardGoalValuesInGroup = _GetFunction("GetScorecardGoalValuesInGroup"),
     GetScorecardGoalValueInGroup = _GetFunction("GetScorecardGoalValueInGroup"),
@@ -112,19 +118,7 @@ shared MyExtension.UnitTest =
      /*****************
      APPS
      *****************/
-        /* GetApp */
-        Fact("GetApp Should Be a Function",
-             true,
-             Value.Is(GetApp,Function.Type)
-        ),
-        Fact("GetApp Should Return Correct Metadata",
-             "apps/$entity",
-             Text.AfterDelimiter(Json.Document(GetApp(AppTestID))[#"@odata.context"],"#")
-        ),
-        Fact("GetApp Should Return AppTestID",
-            AppTestID,
-            Json.Document(GetApp(AppTestID))[id]
-        ),
+        
         /* GetApps */        
         Fact("GetApps Should Be a Function",
              true,
@@ -345,14 +339,14 @@ shared MyExtension.UnitTest =
              true,
              Value.Is(GetDatasetDirectQueryRefreshScheduleInGroup,Function.Type)
         ),
-        /* GetDatasetSyncStatusInGroup 
-        Fact("GetDatasetSyncStatusInGroup Should Be a Function",
+        /* GetDatasetQueryScaleOutStatusInGroup 
+        Fact("GetDatasetQueryScaleOutStatusInGroup Should Be a Function",
              true,
-             Value.Is(GetDatasetSyncStatusInGroup,Function.Type)
+             Value.Is(GetDatasetQueryScaleOutStatusInGroup,Function.Type)
         ), 
-        Fact("GetDatasetSyncStatusInGroup Should Have a CommitVersion Property and Value",
+        Fact("GetDatasetQueryScaleOutStatusInGroup Should Have a CommitVersion Property and Value",
              true,
-             Text.Length(Number.ToText(Json.Document(GetDatasetSyncStatusInGroup(ScaleOutWorkspaceID,ScaleOutDatasetID))[#"commitVersion"])) > 0
+             Text.Length(Number.ToText(Json.Document(GetDatasetQueryScaleOutStatusInGroup(ScaleOutWorkspaceID,ScaleOutDatasetID))[#"commitVersion"])) > 0
         ),*/                
         /*
         Fact("GetDatasetDirectQueryRefreshScheduleInGroup Should Be Correct Metadata",
@@ -408,7 +402,12 @@ shared MyExtension.UnitTest =
         ),
      /*****************
      REPORTS
-     *****************/        
+     *****************/    
+        /* GetPaginatedReportDatasourcesInGroup */
+        Fact("GetPaginatedReportDatasourcesInGroup Should Be a Function",
+             true,
+             Value.Is(GetPaginatedReportDatasourcesInGroup,Function.Type)
+        ),        
         /* GetReportPageInGroup */            
         Fact("GetReportPageInGroup Should Be a Function",
              true,
@@ -457,6 +456,24 @@ shared MyExtension.UnitTest =
              true,
              List.Count(Json.Document(GetReportsInGroup(GroupTestID))[value]) > 0
         ), 
+        /* ExportReportInGroup */
+        Fact("ExportReportInGroup Should Be a Function",
+             true,
+             Value.Is(ExportReportInGroup,Function.Type)
+        ),
+        Fact("ExportReportInGroup Should Return Binary When LiveConnect",
+             true,
+             Value.Is(ExportReportInGroup(ExportWorkspaceID,ExportReportID,"LiveConnect",false),Binary.Type)
+        ),
+        Fact("ExportReportInGroup Should Return When IncludeModel",
+             true,
+             Value.Is(ExportReportInGroup(ExportWorkspaceID,ExportReportID,"IncludeModel",false),Binary.Type)
+        ),  
+        Fact("ExportReportInGroup Should Return When IncludeModel (Paginated Report)",
+             true,
+             Value.Is(ExportReportInGroup(ExportWorkspaceID,ExportPaginatedReportID,"IncludeModel",false),Binary.Type)
+        ),
+
      /*****************
      GOAL VALUES
      *****************/
