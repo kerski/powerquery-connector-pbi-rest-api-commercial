@@ -170,6 +170,7 @@ GetPipelines           | Returns a list of deployment pipelines that the user ha
 
 | End Point                      | Description  | MSDN Documentation |
 |:-----------------------------|:-------------|:------------------|
+| GetPaginatedReportDatasourcesInGroup        | Returns a list of data sources for the specified paginated report (RDL) from the specified workspace.  | [Reports - Get Datasources In Group](https://learn.microsoft.com/en-us/rest/api/power-bi/reports/get-datasources-in-group) |
 | GetPageInGroup         | Returns the specified page within the specified report from the specified workspace.  | [Reports - Get Page In Group](https://learn.microsoft.com/en-us/rest/api/power-bi/reports/get-page-in-group) |
 | GetPagesInGroup          | Returns a list of pages within the specified report from the specified workspace.  | [Reports - Get Pages In Group](https://learn.microsoft.com/en-us/rest/api/power-bi/reports/get-pages-in-group) |
 | GetReportInGroup          | Returns the specified report from the specified workspace.  | [Reports - Get Report In Group](https://learn.microsoft.com/en-us/rest/api/power-bi/reports/get-report-in-group) |
