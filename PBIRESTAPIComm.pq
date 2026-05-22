@@ -1766,7 +1766,7 @@ ExecuteDaxQueriesInGroupType = type function (
     Documentation.LongDescription = "Executes Data Analysis Expressions (DAX) queries against the provided dataset. The dataset must reside in the specified workspace. The response is returned in Apache Arrow stream format. Query errors can also be returned in an HTTP 200 response as an Arrow error rowset, so check the schema metadata for IsError.",
     Documentation.Examples = {
         [
-            Code = "=PBIRESTAPIComm.ExecuteDaxQueriesInGroup(""xxx-xxxx-abcd..."",""xxx-xxxx-efgh..."",""EVALUATE VALUES('Product'[Category])"",null,null,null,null,null,600,100000,null,false)",
+            Code = "=PBIRESTAPIComm.ExecuteDaxQueriesInGroup(""xxx-xxxx-abcd..."",""xxx-xxxx-efgh..."",""EVALUATE VALUES('Product'[Category])"",null,""en-US"",null,null,null,600,100000,null,false)",
             Result = "Defined as https://learn.microsoft.com/en-us/rest/api/power-bi/datasets/execute-dax-queries-in-group"
         ]
     }
@@ -3155,7 +3155,9 @@ BuildExecuteDaxQueriesContent = (
         result;
 
 IsProvided = (value as any) as logical =>
-    value <> null and (not Value.Is(value, type text) or value <> "");
+    value <> null
+    and (not Value.Is(value, type text) or value <> "")
+    and (not Value.Is(value, type list) or List.Count(value) > 0);
 
 // Data Source Kind description
 PBIRESTAPIComm = [
