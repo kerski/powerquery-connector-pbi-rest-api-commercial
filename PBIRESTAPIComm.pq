@@ -1626,8 +1626,8 @@ ExecuteDaxQueries = (
     optional schemaOnly as logical
 ) as binary =>
     let
-        doArgumentsExist = IsProvided(datasetId) and IsProvided(daxQuery),
-        result = if doArgumentsExist = false then
+        areRequiredArgumentsProvided = IsProvided(datasetId) and IsProvided(daxQuery),
+        result = if areRequiredArgumentsProvided = false then
                     error Error.Record("InvalidArguments","Please provide datasetId and daxQuery arguments",null)
                  else
                     let
@@ -1787,8 +1787,8 @@ ExecuteDaxQueriesInGroup = (
     optional schemaOnly as logical
 ) as binary =>
     let
-        doArgumentsExist = IsProvided(groupId) and IsProvided(datasetId) and IsProvided(daxQuery),
-        result = if doArgumentsExist = false then
+        areRequiredArgumentsProvided = IsProvided(groupId) and IsProvided(datasetId) and IsProvided(daxQuery),
+        result = if areRequiredArgumentsProvided = false then
                     error Error.Record("InvalidArguments","Please provide groupId, datasetId and daxQuery arguments",null)
                  else
                     let
@@ -3155,9 +3155,10 @@ BuildExecuteDaxQueriesContent = (
         result;
 
 IsProvided = (value as any) as logical =>
-    value <> null
-    and (not Value.Is(value, type text) or value <> "")
-    and (not Value.Is(value, type list) or List.Count(value) > 0);
+    if Value.Is(value, type null) then false
+    else if Value.Is(value, type text) then value <> ""
+    else if Value.Is(value, type list) then List.Count(value) > 0
+    else true;
 
 // Data Source Kind description
 PBIRESTAPIComm = [
