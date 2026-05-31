@@ -2,7 +2,9 @@
 
 This Custom Data Connector wraps many of the "Get" endpoints in the Power BI API, along with dataset query endpoints, so that OAuth can be used to authenticate to the service.  This connector serves as a way to have a library of Power Query functions to build datasets based on the Power BI APIs without the need for storing client secrets or passwords in the dataset.  
 
-Most functions return a JSON body and not a table of data.  This decision was made to provide flexibility in converting the JSON body to tabular data when 1) the API responses are changed by Microsoft or 2) the API responses differ between commercial and sovereign clouds (e.g., GCC, DoD, etc.). Query and export endpoints that return binary content are surfaced as binary values instead. 
+Most functions return a JSON body and not a table of data.  This decision was made to provide flexibility in converting the JSON body to tabular data when 1) the API responses are changed by Microsoft or 2) the API responses differ between commercial and sovereign clouds (e.g., GCC, DoD, etc.). 
+
+**Query and export endpoints that return binary content are surfaced as binary values.** The `ExecuteDaxQueries` and `ExecuteDaxQueriesInGroup` functions now support **Apache Arrow IPC format** responses and will automatically detect and parse Arrow binaries to Power Query tables. See [Arrow IPC Integration Documentation](./documentation/ARROW_IPC_INTEGRATION.md) for details.
 
 ## Table of Contents
 
@@ -13,6 +15,7 @@ Most functions return a JSON body and not a table of data.  This decision was ma
     1. [On-Premises Gateway](#on-premises-gateway)
 1. [Building Connector](#building-connector)
     1. [Testing Connector](#testing-connector)
+1. [Arrow IPC Support](#arrow-ipc-support)
 
 
 ## Installation
@@ -232,3 +235,84 @@ In order to test the custom data connector, please follow these instructions:
 4. When the testing completes, a new tab will be present any failed results or if all the tests passed (example below).
 
 ![Test Results](./documentation/images/test-results.png)
+
+## Arrow IPC Support
+
+This connector includes native Apache Arrow IPC (Inter-Process Communication) format support for the `ExecuteDaxQueries` and `ExecuteDaxQueriesInGroup` functions.
+
+### What is Arrow IPC?
+
+Apache Arrow IPC is a high-performance columnar binary format for data interchange. Power BI REST API can return DAX query results in Arrow format for improved performance and efficiency, especially for large result sets.
+
+### Automatic Detection and Parsing
+
+The connector automatically detects and parses Arrow responses:
+
+```powerquery
+// Arrow responses are automatically parsed to tables
+result = PBIRESTAPIComm.ExecuteDaxQueries(
+    "dataset-guid",
+    "EVALUATE VALUES('Product'[Category])"
+)
+// result is a table if Arrow format is returned
+```
+
+### Supported Features
+
+- **Arrow IPC Stream Format**: Full support for Arrow IPC streaming format
+- **Primitive Types**: Int32, Int64, Float64, Utf8 (string), Boolean
+- **Nullable Columns**: Full support for nullable values
+- **Multiple Record Batches**: Processes multi-batch responses
+- **Backward Compatibility**: Automatically falls back to JSON when Arrow is not available
+
+### Unsupported Features
+
+The following Arrow features are not currently supported:
+- Compression (LZ4, ZSTD)
+- Dictionary encoding
+- Nested types (struct, list, map)
+- Decimal128
+- Temporal types (Date, Timestamp, Time)
+
+### Documentation
+
+For detailed information about the Arrow IPC integration, including:
+- Architecture and design
+- Performance optimizations
+- Troubleshooting
+- Extension guidelines
+
+See the [Arrow IPC Integration Documentation](./documentation/ARROW_IPC_INTEGRATION.md).
+
+### Example Usage
+
+```powerquery
+// ExecuteDaxQueries with Arrow support
+let
+    Source = PBIRESTAPIComm.FunctionCatalog(),
+    ExecuteDaxQueries = Source{[Key="ExecuteDaxQueries"]}[Data],
+    Result = ExecuteDaxQueries(
+        "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",  // Dataset ID
+        "EVALUATE 'Sales'",                       // DAX Query
+        null,                                     // Application Context
+        "en-US",                                  // Culture
+        null,                                     // Custom Data
+        null,                                     // Effective Username
+        null,                                     // Memory Limit
+        600,                                      // Query Timeout
+        100000,                                   // Row Count Limit
+        null,                                     // Roles
+        false                                     // Schema Only
+    )
+in
+    Result
+```
+
+### Performance Considerations
+
+Arrow format provides significant performance benefits:
+- **Faster Parsing**: Binary format is faster to parse than JSON
+- **Lower Memory**: Columnar format uses less memory
+- **Larger Result Sets**: Handles larger datasets more efficiently
+- **Direct Lake Integration**: Optimized for Fabric Direct Lake scenarios
+
