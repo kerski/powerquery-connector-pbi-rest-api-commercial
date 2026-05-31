@@ -412,16 +412,133 @@ shared MyExtension.UnitTest =
             true,
             Value.Is(ExecuteDaxQueriesInGroup,Function.Type)
        ),
-       Fact("ExecuteDaxQueries Functions Should Return Binary",
-            {type binary, type binary},
-            {
-                Type.FunctionReturn(Value.Type(ExecuteDaxQueries)),
-                Type.FunctionReturn(Value.Type(ExecuteDaxQueriesInGroup))
-            }
-       ),
+      Fact("ExecuteDaxQueries Functions Should Return Any Type",
+           true,
+           let
+               execType = Type.FunctionReturn(Value.Type(ExecuteDaxQueries)),
+               execInGroupType = Type.FunctionReturn(Value.Type(ExecuteDaxQueriesInGroup))
+           in
+               execType = type any and execInGroupType = type any
+      ),
+       
+      /*****************
+      ARROW IPC PARSER TESTS
+      *****************/
+       
+      /* Arrow Detection Tests */
+      Fact("Arrow.Detection.HasArrowMagic Should Detect Valid Arrow Magic Header",
+           true,
+           let
+               testData = Extension.Contents("tests/samples/arrow-magic.bin")
+           in
+               Arrow[Detection][HasArrowMagic](testData)
+      ),
+      Fact("Arrow.Detection.HasArrowMagic Should Reject Non-Arrow Binary",
+           false,
+           let
+               testData = Extension.Contents("tests/samples/not-arrow.bin")
+           in
+               Arrow[Detection][HasArrowMagic](testData)
+      ),
+      Fact("Arrow.Detection.IsArrowResponse Should Detect Arrow with Content-Type",
+           true,
+           let
+               testData = Extension.Contents("tests/samples/primitive.arrow"),
+               contentType = "application/vnd.apache.arrow.stream"
+           in
+               Arrow[Detection][IsArrowResponse](testData, contentType)
+      ),
+      Fact("Arrow.Detection.IsArrowResponse Should Reject JSON Response",
+           false,
+           let
+               testData = Extension.Contents("tests/samples/not-arrow.bin"),
+               contentType = "application/json"
+           in
+               Arrow[Detection][IsArrowResponse](testData, contentType)
+      ),
+       
+      /* Arrow BinaryEx Tests */
+      Fact("Arrow.BinaryEx.ReadInt32LE Should Read Little-Endian Int32",
+           42,
+           let
+               // Create binary with 42 in little-endian: 0x2A 0x00 0x00 0x00
+               testData = Binary.FromText("KgAAAA==", BinaryEncoding.Base64)
+           in
+               Arrow[BinaryEx][ReadInt32LE](testData, 0)
+      ),
+      Fact("Arrow.BinaryEx.ReadInt32LE Should Handle Negative Int32",
+           -1,
+           let
+               // Create binary with -1 in little-endian: 0xFF 0xFF 0xFF 0xFF
+               testData = Binary.FromText("/////w==", BinaryEncoding.Base64)
+           in
+               Arrow[BinaryEx][ReadInt32LE](testData, 0)
+      ),
+      Fact("Arrow.BinaryEx.ReadInt64LE Should Read Little-Endian Int64",
+           1000,
+           let
+               // Create binary with 1000 in little-endian: 0xE8 0x03 0x00 0x00 0x00 0x00 0x00 0x00
+               testData = Binary.FromText("6AMAAAAAAAA=", BinaryEncoding.Base64)
+           in
+               Arrow[BinaryEx][ReadInt64LE](testData, 0)
+      ),
+      Fact("Arrow.BinaryEx.AlignOffset Should Align to 8-byte Boundary",
+           8,
+           Arrow[BinaryEx][AlignOffset](5, 8)
+      ),
+      Fact("Arrow.BinaryEx.AlignOffset Should Not Change Already-Aligned Offset",
+           16,
+           Arrow[BinaryEx][AlignOffset](16, 8)
+      ),
+      Fact("Arrow.BinaryEx.ReadBit Should Read Bit 0 from Byte",
+           true,
+           let
+               // Create binary with byte 0x01 (bit 0 set)
+               testData = Binary.FromText("AQ==", BinaryEncoding.Base64)
+           in
+               Arrow[BinaryEx][ReadBit](testData, 0, 0)
+      ),
+      Fact("Arrow.BinaryEx.ReadBit Should Read Bit 7 from Byte",
+           true,
+           let
+               // Create binary with byte 0x80 (bit 7 set)
+               testData = Binary.FromText("gA==", BinaryEncoding.Base64)
+           in
+               Arrow[BinaryEx][ReadBit](testData, 0, 7)
+      ),
+      Fact("Arrow.BinaryEx.ReadUtf8 Should Read UTF-8 String",
+           "Hello",
+           let
+               // Create binary with "Hello" in UTF-8
+               testData = Text.ToBinary("Hello", TextEncoding.Utf8)
+           in
+               Arrow[BinaryEx][ReadUtf8](testData, 0, 5)
+      ),
+       
+      /* Arrow Schema Tests */
+      Fact("Arrow.Schema.InferType Should Return Number Type for Int32",
+           type number,
+           Arrow[Schema][InferType](2)
+      ),
+      Fact("Arrow.Schema.InferType Should Return Number Type for Int64",
+           type number,
+           Arrow[Schema][InferType](3)
+      ),
+      Fact("Arrow.Schema.InferType Should Return Number Type for Float64",
+           type number,
+           Arrow[Schema][InferType](9)
+      ),
+      Fact("Arrow.Schema.InferType Should Return Text Type for Utf8",
+           type text,
+           Arrow[Schema][InferType](5)
+      ),
+      Fact("Arrow.Schema.InferType Should Return Logical Type for Boolean",
+           type logical,
+           Arrow[Schema][InferType](1)
+      ),
      /*****************
      REPORTS
-     *****************/    
+     *****************/
         /* GetPaginatedReportDatasourcesInGroup */
         Fact("GetPaginatedReportDatasourcesInGroup Should Be a Function",
              true,
