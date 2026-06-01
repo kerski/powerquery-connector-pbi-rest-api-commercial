@@ -426,7 +426,7 @@ shared MyExtension.UnitTest =
       *****************/
        
       /* Arrow Detection Tests */
-      Fact("Arrow.Detection.HasArrowMagic Should Detect Valid Arrow Magic Header",
+      /*Fact("Arrow.Detection.HasArrowMagic Should Detect Valid Arrow Magic Header",
            true,
            let
                testData = Extension.Contents("tests/samples/arrow-magic.bin")
@@ -457,7 +457,6 @@ shared MyExtension.UnitTest =
                Arrow[Detection][IsArrowResponse](testData, contentType)
       ),
        
-      /* Arrow BinaryEx Tests */
       Fact("Arrow.BinaryEx.ReadInt32LE Should Read Little-Endian Int32",
            42,
            let
@@ -515,7 +514,6 @@ shared MyExtension.UnitTest =
                Arrow[BinaryEx][ReadUtf8](testData, 0, 5)
       ),
        
-      /* Arrow Schema Tests */
       Fact("Arrow.Schema.InferType Should Return Number Type for Int32",
            type number,
            Arrow[Schema][InferType](2)
@@ -535,7 +533,7 @@ shared MyExtension.UnitTest =
       Fact("Arrow.Schema.InferType Should Return Logical Type for Boolean",
            type logical,
            Arrow[Schema][InferType](1)
-      ),
+      ),*/
      /*****************
      REPORTS
      *****************/

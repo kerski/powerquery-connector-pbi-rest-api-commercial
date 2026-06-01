@@ -1879,10 +1879,11 @@ Arrow = [
         ReadInt32LE = (data as binary, offset as number) as number =>
             let
                 bytes = Binary.Range(data, offset, 4),
-                b0 = Number.From(Binary.At(bytes, 0)),
-                b1 = Number.From(Binary.At(bytes, 1)),
-                b2 = Number.From(Binary.At(bytes, 2)),
-                b3 = Number.From(Binary.At(bytes, 3)),
+                byteList = Binary.ToList(bytes),
+                b0 = Number.From(byteList{0}),
+                b1 = Number.From(byteList{1}),
+                b2 = Number.From(byteList{2}),
+                b3 = Number.From(byteList{3}),
                 value = b0 + b1 * 256 + b2 * 65536 + b3 * 16777216,
                 // Handle signed 32-bit integer
                 result = if value >= 2147483648 then value - 4294967296 else value
@@ -1893,14 +1894,15 @@ Arrow = [
         ReadInt64LE = (data as binary, offset as number) as number =>
             let
                 bytes = Binary.Range(data, offset, 8),
-                b0 = Number.From(Binary.At(bytes, 0)),
-                b1 = Number.From(Binary.At(bytes, 1)),
-                b2 = Number.From(Binary.At(bytes, 2)),
-                b3 = Number.From(Binary.At(bytes, 3)),
-                b4 = Number.From(Binary.At(bytes, 4)),
-                b5 = Number.From(Binary.At(bytes, 5)),
-                b6 = Number.From(Binary.At(bytes, 6)),
-                b7 = Number.From(Binary.At(bytes, 7)),
+                byteList = Binary.ToList(bytes),
+                b0 = Number.From(byteList{0}),
+                b1 = Number.From(byteList{1}),
+                b2 = Number.From(byteList{2}),
+                b3 = Number.From(byteList{3}),
+                b4 = Number.From(byteList{4}),
+                b5 = Number.From(byteList{5}),
+                b6 = Number.From(byteList{6}),
+                b7 = Number.From(byteList{7}),
                 // Compute 64-bit value (approximation for large values)
                 low = b0 + b1 * 256 + b2 * 65536 + b3 * 16777216,
                 high = b4 + b5 * 256 + b6 * 65536 + b7 * 16777216,
@@ -1937,7 +1939,7 @@ Arrow = [
         // Read boolean bit from binary
         ReadBit = (data as binary, byteOffset as number, bitOffset as number) as logical =>
             let
-                byte = Number.From(Binary.At(data, byteOffset)),
+                byte = Number.From(Binary.ToList(data){byteOffset}),
                 mask = Number.Power(2, bitOffset),
                 result = Number.Mod(Number.IntegerDivide(byte, mask), 2) = 1
             in
@@ -1950,15 +1952,15 @@ Arrow = [
     Flatbuffers = [
         // Read FlatBuffer offset (little-endian Int32)
         ReadOffset = (data as binary, pos as number) as number =>
-            Arrow[BinaryEx][ReadInt32LE](data, pos),
+            @Arrow[BinaryEx][ReadInt32LE](data, pos),
 
         // Read FlatBuffer vector length
         ReadVectorLength = (data as binary, tablePos as number, vTableOffset as number) as number =>
             let
                 offsetPos = tablePos + vTableOffset,
-                offset = Arrow[Flatbuffers][ReadOffset](data, offsetPos),
+                offset = @Arrow[Flatbuffers][ReadOffset](data, offsetPos),
                 vectorPos = offsetPos + offset,
-                length = if offset = 0 then 0 else Arrow[Flatbuffers][ReadOffset](data, vectorPos)
+                length = if offset = 0 then 0 else @Arrow[Flatbuffers][ReadOffset](data, vectorPos)
             in
                 length,
 
@@ -1966,18 +1968,18 @@ Arrow = [
         ReadString = (data as binary, tablePos as number, fieldOffset as number) as text =>
             let
                 offsetPos = tablePos + fieldOffset,
-                offset = Arrow[Flatbuffers][ReadOffset](data, offsetPos),
+                offset = @Arrow[Flatbuffers][ReadOffset](data, offsetPos),
                 stringPos = offsetPos + offset,
-                length = if offset = 0 then 0 else Arrow[Flatbuffers][ReadOffset](data, stringPos),
-                result = if length = 0 then "" else Arrow[BinaryEx][ReadUtf8](data, stringPos + 4, length)
+                length = if offset = 0 then 0 else @Arrow[Flatbuffers][ReadOffset](data, stringPos),
+                result = if length = 0 then "" else @Arrow[BinaryEx][ReadUtf8](data, stringPos + 4, length)
             in
                 result,
 
         // Read FlatBuffer table field as Int32
         ReadInt32Field = (data as binary, tablePos as number, fieldOffset as number) as number =>
             let
-                offset = Arrow[Flatbuffers][ReadOffset](data, tablePos + fieldOffset),
-                result = if offset = 0 then 0 else Arrow[BinaryEx][ReadInt32LE](data, tablePos + fieldOffset)
+                offset = @Arrow[Flatbuffers][ReadOffset](data, tablePos + fieldOffset),
+                result = if offset = 0 then 0 else @Arrow[BinaryEx][ReadInt32LE](data, tablePos + fieldOffset)
             in
                 result
     ],
@@ -1993,7 +1995,7 @@ Arrow = [
                 // For simplicity, we'll parse field names and types from the schema message
                 // This is a simplified parser - a full implementation would parse the complete FlatBuffer schema
                 result = [
-                    fields = Arrow[Schema][ParseFields](schemaMessage),
+                    fields = @Arrow[Schema][ParseFields](schemaMessage),
                     metadata = null
                 ]
             in
@@ -2036,9 +2038,9 @@ Arrow = [
                     each 
                         let
                             isNull = if nullCount > 0 then 
-                                        not Arrow[BinaryEx][ReadBit](nullBitmap, Number.IntegerDivide([i], 8), Number.Mod([i], 8))
+                                        not @Arrow[BinaryEx][ReadBit](nullBitmap, Number.IntegerDivide([i], 8), Number.Mod([i], 8))
                                      else false,
-                            value = if isNull then null else Arrow[BinaryEx][ReadInt32LE](data, offset + [i] * 4)
+                            value = if isNull then null else @Arrow[BinaryEx][ReadInt32LE](data, offset + [i] * 4)
                         in
                             value
                 )
@@ -2055,9 +2057,9 @@ Arrow = [
                     each 
                         let
                             isNull = if nullCount > 0 then 
-                                        not Arrow[BinaryEx][ReadBit](nullBitmap, Number.IntegerDivide([i], 8), Number.Mod([i], 8))
+                                        not @Arrow[BinaryEx][ReadBit](nullBitmap, Number.IntegerDivide([i], 8), Number.Mod([i], 8))
                                      else false,
-                            value = if isNull then null else Arrow[BinaryEx][ReadInt64LE](data, offset + [i] * 8)
+                            value = if isNull then null else @Arrow[BinaryEx][ReadInt64LE](data, offset + [i] * 8)
                         in
                             value
                 )
@@ -2074,9 +2076,9 @@ Arrow = [
                     each 
                         let
                             isNull = if nullCount > 0 then 
-                                        not Arrow[BinaryEx][ReadBit](nullBitmap, Number.IntegerDivide([i], 8), Number.Mod([i], 8))
+                                        not @Arrow[BinaryEx][ReadBit](nullBitmap, Number.IntegerDivide([i], 8), Number.Mod([i], 8))
                                      else false,
-                            value = if isNull then null else Arrow[BinaryEx][ReadFloat64LE](data, offset + [i] * 8)
+                            value = if isNull then null else @Arrow[BinaryEx][ReadFloat64LE](data, offset + [i] * 8)
                         in
                             value
                 )
@@ -2093,14 +2095,14 @@ Arrow = [
                     each 
                         let
                             isNull = if nullCount > 0 then 
-                                        not Arrow[BinaryEx][ReadBit](nullBitmap, Number.IntegerDivide([i], 8), Number.Mod([i], 8))
+                                    not @Arrow[BinaryEx][ReadBit](nullBitmap, Number.IntegerDivide([i], 8), Number.Mod([i], 8))
                                      else false,
-                            startOffset = Arrow[BinaryEx][ReadInt32LE](offsetBuffer, [i] * 4),
-                            endOffset = Arrow[BinaryEx][ReadInt32LE](offsetBuffer, ([i] + 1) * 4),
+                                startOffset = @Arrow[BinaryEx][ReadInt32LE](offsetBuffer, [i] * 4),
+                                endOffset = @Arrow[BinaryEx][ReadInt32LE](offsetBuffer, ([i] + 1) * 4),
                             strLength = endOffset - startOffset,
                             value = if isNull then null 
                                     else if strLength = 0 then ""
-                                    else Arrow[BinaryEx][ReadUtf8](data, dataOffset + startOffset, strLength)
+                                    else @Arrow[BinaryEx][ReadUtf8](data, dataOffset + startOffset, strLength)
                         in
                             value
                 )
@@ -2117,11 +2119,11 @@ Arrow = [
                     each 
                         let
                             isNull = if nullCount > 0 then 
-                                        not Arrow[BinaryEx][ReadBit](nullBitmap, Number.IntegerDivide([i], 8), Number.Mod([i], 8))
+                                        not @Arrow[BinaryEx][ReadBit](nullBitmap, Number.IntegerDivide([i], 8), Number.Mod([i], 8))
                                      else false,
                             byteOffset = Number.IntegerDivide([i], 8),
                             bitOffset = Number.Mod([i], 8),
-                            value = if isNull then null else Arrow[BinaryEx][ReadBit](data, offset + byteOffset, bitOffset)
+                            value = if isNull then null else @Arrow[BinaryEx][ReadBit](data, offset + byteOffset, bitOffset)
                         in
                             value
                 )
@@ -2137,7 +2139,7 @@ Arrow = [
         ParseRecordBatch = (data as binary, messageOffset as number, bodyOffset as number) as record =>
             let
                 // Read message metadata length (includes message + metadata)
-                metadataLength = Arrow[BinaryEx][ReadInt32LE](data, messageOffset),
+                metadataLength = @Arrow[BinaryEx][ReadInt32LE](data, messageOffset),
                 
                 // Message starts after the length prefix
                 messageStart = messageOffset + 4,
@@ -2146,10 +2148,10 @@ Arrow = [
                 // Parse batch metadata from FlatBuffer message
                 // Simplified: extract row count from message
                 // Full implementation would parse complete RecordBatch FlatBuffer
-                rowCount = Arrow[BinaryEx][ReadInt32LE](messageData, 8), // Approximate location
+                rowCount = @Arrow[BinaryEx][ReadInt32LE](messageData, 8), // Approximate location
                 
                 // Body contains the actual array data buffers
-                bodyStart = Arrow[BinaryEx][AlignOffset](messageStart + metadataLength, 8),
+                bodyStart = @Arrow[BinaryEx][AlignOffset](messageStart + metadataLength, 8),
                 
                 result = [
                     rowCount = rowCount,
@@ -2197,7 +2199,7 @@ Arrow = [
                         or Text.Contains(contentType, "application/octet-stream"),
                 
                 // Validate magic header
-                hasMagic = Arrow[Detection][HasArrowMagic](responseData),
+                hasMagic = @Arrow[Detection][HasArrowMagic](responseData),
                 
                 // Response is Arrow if it has Arrow content type OR valid magic header
                 result = hasArrowContentType and hasMagic
@@ -2207,7 +2209,7 @@ Arrow = [
         // Get Arrow format type (stream vs file)
         GetFormatType = (data as binary) as text =>
             let
-                hasMagic = Arrow[Detection][HasArrowMagic](data),
+                hasMagic = @Arrow[Detection][HasArrowMagic](data),
                 // Arrow IPC File format has magic at start and end
                 // Arrow IPC Stream format has magic only at start
                 result = if hasMagic then "stream" else "unknown"
@@ -2223,7 +2225,7 @@ Arrow = [
         FromBinary = (data as binary) as table =>
             let
                 // Validate Arrow format
-                isArrow = Arrow[Detection][HasArrowMagic](data),
+                isArrow = @Arrow[Detection][HasArrowMagic](data),
                 
                 result = if not isArrow then 
                     error Error.Record(
@@ -2244,7 +2246,7 @@ Arrow = [
                         streamStart = 8,
                         
                         // Read first message (schema)
-                        schemaMessageLength = Arrow[BinaryEx][ReadInt32LE](data, streamStart),
+                        schemaMessageLength = @Arrow[BinaryEx][ReadInt32LE](data, streamStart),
                         schemaStart = streamStart + 4,
                         
                         // For simplified implementation, we'll create a sample table
@@ -2252,16 +2254,16 @@ Arrow = [
                         
                         // Parse schema message
                         schemaData = Binary.Range(data, schemaStart, schemaMessageLength),
-                        schema = Arrow[Schema][ParseSchema](schemaData),
+                        schema = @Arrow[Schema][ParseSchema](schemaData),
                         
                         // Move to first record batch
-                        firstBatchOffset = Arrow[BinaryEx][AlignOffset](schemaStart + schemaMessageLength, 8),
+                        firstBatchOffset = @Arrow[BinaryEx][AlignOffset](schemaStart + schemaMessageLength, 8),
                         
                         // Parse record batches
-                        batches = Arrow[Materialization][ParseAllBatches](data, firstBatchOffset),
+                        batches = @Arrow[Materialization][ParseAllBatches](data, firstBatchOffset),
                         
                         // Materialize table from batches
-                        table = Arrow[Materialization][BatchesToTable](batches, schema)
+                        table = @Arrow[Materialization][BatchesToTable](batches, schema)
                     in
                         table
             in
@@ -2276,13 +2278,13 @@ Arrow = [
                     each [offset] < dataLength - 8,
                     each 
                         let
-                            messageLength = Arrow[BinaryEx][ReadInt32LE](data, [offset]),
+                            messageLength = @Arrow[BinaryEx][ReadInt32LE](data, [offset]),
                             // End of stream has 0xFFFFFFFF continuation marker
                             isEnd = messageLength = -1 or messageLength = 0,
                             nextOffset = if isEnd then dataLength 
-                                        else Arrow[BinaryEx][AlignOffset]([offset] + 4 + messageLength + messageLength, 8),
-                            batch = if isEnd then null 
-                                   else Arrow[RecordBatch][ParseRecordBatch](data, [offset], [offset] + 4 + messageLength)
+                                             else @Arrow[BinaryEx][AlignOffset]([offset] + 4 + messageLength + messageLength, 8),
+                                    batch = if isEnd then null 
+                                        else @Arrow[RecordBatch][ParseRecordBatch](data, [offset], [offset] + 4 + messageLength)
                         in
                             [
                                 offset = nextOffset,
@@ -2310,8 +2312,8 @@ Arrow = [
     ],
 
     // Main public API
-    FromBinary = Arrow[Materialization][FromBinary],
-    IsArrow = Arrow[Detection][IsArrowResponse]
+    FromBinary = @Arrow[Materialization][FromBinary],
+    IsArrow = @Arrow[Detection][IsArrowResponse]
 ];
 
 
