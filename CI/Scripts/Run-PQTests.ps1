@@ -19,12 +19,7 @@ Author: John Kerski
     ./Run-PBITests.ps1
     ./Run-PBITests.ps1 -Compile $False
 #>
-param([Boolean]$Compile)
-
-# Set default compile settings
-if(!$Compile){
-    $Compile = $True
-}
+param([Boolean]$Compile = $True)
 
 # Install Powershell Module if Needed
 if (Get-Module -ListAvailable -Name "MicrosoftPowerBIMgmt") {
@@ -52,11 +47,33 @@ else { # Runs Local so will ask to sign in
        
 # Setup Test File Path
 $RelTestFilePath = ".\\CI\\Scripts\\variables.test.json"
+$RelTestTemplateFilePath = ".\\CI\\Scripts\\variables.test.template.json"
+
+if(!(Test-Path -Path $RelTestFilePath)){
+    Write-Error "Missing test variables file: $RelTestFilePath"
+    Write-Error "Create it from template: Copy-Item $RelTestTemplateFilePath $RelTestFilePath"
+    return 0
+}
+
 $TestFilePath = (Resolve-Path -Path $RelTestFilePath).Path
+
+# Prefer the newest VS Code SDK PQTest to avoid local credential-store version drift.
+$PQTestExe = ".\\CI\\PQTest\\PQTest.exe"
+$SdkPQTestCandidates = @(Get-ChildItem -Path "$env:USERPROFILE\\.vscode\\extensions" -Filter "PQTest.exe" -Recurse -ErrorAction SilentlyContinue |
+    Where-Object { $_.FullName -like "*powerquery.vscode-powerquery-sdk*" } |
+    Sort-Object LastWriteTime -Descending)
+
+if($SdkPQTestCandidates.Count -gt 0){
+    $PQTestExe = $SdkPQTestCandidates[0].FullName
+    Write-Host "Using SDK PQTest: $PQTestExe"
+}
+else{
+    Write-Host "Using bundled PQTest: $PQTestExe"
+}
 
 # Clear Credentials
 $Result = $null
-$Result = .\CI\PQTest\PQTest.exe delete-credential --ALL
+$Result = & $PQTestExe delete-credential --ALL
 
 # Generate Token
 $AccessToken = Get-PowerBIAccessToken
@@ -66,11 +83,23 @@ $AccessToken = $AccessToken.Values.Substring(7)
 # Relative Extension File Path
 $RelExtFilePath = ".\\bin\\AnyCPU\\Debug\\powerquery-connector-pbi-rest-api-commercial.mez"
 $RelQueryCredFilePath = ".\\PBIRESTAPICommCredTemplate.query.pq"
-$RelQueryFilePath =  ".\\PBIRESTAPIComm.query.pq"
+$RelQueryFilePaths = @(
+    ".\\PBIRESTAPIComm.tests.apps.query.pq",
+    ".\\PBIRESTAPIComm.tests.dashboards.query.pq",
+    ".\\PBIRESTAPIComm.tests.dataflows.query.pq",
+    ".\\PBIRESTAPIComm.tests.datasets.query.pq",
+    ".\\PBIRESTAPIComm.tests.reports.query.pq",
+    ".\\PBIRESTAPIComm.tests.groups.query.pq",
+    ".\\PBIRESTAPIComm.tests.pipelines.query.pq",
+    ".\\PBIRESTAPIComm.tests.scorecards.query.pq"
+)
 # Get full path because PQTest expects that
 $ExtensionFilePath = (Resolve-Path -Path $RelExtFilePath).Path
 $QueryCredFilePath = (Resolve-Path -Path $RelQueryCredFilePath).Path
-$QueryFilePath = (Resolve-Path -Path $RelQueryFilePath).Path
+$QueryFilePaths = @()
+foreach($RelQueryFilePath in $RelQueryFilePaths){
+    $QueryFilePaths += (Resolve-Path -Path $RelQueryFilePath).Path
+}
 
 # Compile Check    
 if($Compile -eq $True){
@@ -85,27 +114,26 @@ if($Compile -eq $True){
   
 # Setup credentials
 $Template = $null
-$Template = .\CI\PQTest\PQTest.exe credential-template --extension $ExtensionFilePath `
+$Template = & $PQTestExe credential-template --extension $ExtensionFilePath `
                                              --queryFile $QueryCredFilePath
 # Output Template to Console for monitoring
 Write-Host $Template
 
 # Update Template
-$Template = $Template.Replace('OAuth2','AAD')
 $Template = $Template.Replace('$$ACCESS_TOKEN$$',$AccessToken)
 
 $X = $Template | ConvertFrom-Json | ConvertTo-Json -Compress
 
 $Result = $null
-$Result = $X | .\CI\PQTest\PQTest.exe set-credential `
+$Result = $X | & $PQTestExe set-credential `
                 --extension $ExtensionFilePath `
 				--queryFile $QueryCredFilePath `
 				--prettyPrint
 
 $TestSetCredential = $Result | ConvertFrom-Json
 
-if(!$TestSetCredential -and !($TestSetCredential.Status -like 'Success')){
-    Write-Error "Passed"
+if(!$TestSetCredential -or !($TestSetCredential.Status -like 'Success')){
+    Write-Error "Failed to create credential"
     return 0
 }
 else{
@@ -113,24 +141,51 @@ else{
 }
 
 # Now Run The Tests
-$Result = $null
+$TestRunSummary = @()
 
-$Result = .\CI\PQTest\PQTest.exe run-test --extension $ExtensionFilePath `
-				            --queryFile $QueryFilePath `
-				            --prettyPrint `
-                            -ecf $TestFilePath
+foreach($QueryFilePath in $QueryFilePaths){
+    $Result = $null
+    $Result = & $PQTestExe run-test --extension $ExtensionFilePath `
+				                --queryFile $QueryFilePath `
+				                --prettyPrint `
+                                -ecf $TestFilePath
 
-$TestResults = $Result | ConvertFrom-Json
+    $TestResults = $Result | ConvertFrom-Json
+    $Status = "Failed"
+    $ErrorMessage = "Unknown error"
 
-if(!$TestResults){
-    Write-Error "No Expected Test Results"
-    #return 0
+    if($TestResults -and ($TestResults.Status -like 'Passed')){
+        $Status = "Passed"
+        $ErrorMessage = ""
+        Write-Host "[PASS] $QueryFilePath"
+    }
+    else {
+        if($TestResults -and $TestResults.Error){
+            $ErrorMessage = $TestResults.Error.Message
+        }
+        elseif(!$TestResults){
+            $ErrorMessage = "No Expected Test Results"
+        }
+
+        Write-Error "[FAIL] $QueryFilePath - $ErrorMessage"
+    }
+
+    $TestRunSummary += [PSCustomObject]@{
+        TestFile = Split-Path -Path $QueryFilePath -Leaf
+        QueryFile = $QueryFilePath
+        Status = $Status
+        Error = $ErrorMessage
+    }
 }
-elseif(!($TestResults.Status -like 'Passed')){
-    Write-Error $TestResults.Error.Message
+
+Write-Host ""
+Write-Host "Test file execution summary:"
+$TestRunSummary | Select-Object TestFile, Status, Error | Format-Table -AutoSize
+
+$FailedTests = $TestRunSummary | Where-Object { $_.Status -ne 'Passed' }
+if($FailedTests.Count -gt 0){
+    Write-Error "One or more test files failed: $($FailedTests.QueryFile -join '; ')"
     return 0
 }
-else {
 
-    Write-Host "Test Results Passed"
-}
+Write-Host "All split test files passed"

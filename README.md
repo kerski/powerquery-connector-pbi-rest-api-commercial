@@ -219,14 +219,28 @@ In order to test the custom data connector, please follow these instructions:
 
 ![Set Credential](./documentation/images/set-credential.png)
 
-2. The .query.pq file is used to test the custom data connector, please update the section labeled "TEST VARIABLES" for your own environment.
+2. Copy the template file `CI/Scripts/variables.test.template.json` to `CI/Scripts/variables.test.json`.
+
+    PowerShell:
+
+    ```powershell
+    Copy-Item .\\CI\\Scripts\\variables.test.template.json .\\CI\\Scripts\\variables.test.json
+    ```
+
+    Keep `variables.test.json` local to your machine and update values for your own environment.
 
 ![Test Variables](./documentation/images/test-variables.png)
 
-3. When you are ready to test, use the "Evaluate current file" option in the Power Query SDK in the "Explorer" tab.
+3. Run the split test suite from PowerShell:
+
+    ```powershell
+    .\\CI\\Scripts\\Run-PQTests.ps1 -Compile $False
+    ```
+
+    The script runs each test group separately and reports which `.query.pq` file failed.
 
 ![Evaluate](./documentation/images/evaluate-test-file.png)
 
-4. When the testing completes, a new tab will be present any failed results or if all the tests passed (example below).
+4. When testing completes, review the per-file pass/fail output and the final summary table.
 
 ![Test Results](./documentation/images/test-results.png)
