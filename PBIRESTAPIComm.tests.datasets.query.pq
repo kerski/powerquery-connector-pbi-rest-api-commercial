@@ -40,6 +40,8 @@ shared MyExtension.UnitTest =
     GetDatasetRefreshScheduleInGroup = _GetFunction("GetDatasetRefreshScheduleInGroup"),
     ExecuteQuery = _GetFunction("ExecuteQuery"),
     ExecuteQueryInGroup = _GetFunction("ExecuteQueryInGroup"),
+    ExecuteDaxQueries = _GetFunction("ExecuteDaxQueries"),
+    ExecuteDaxQueriesInGroup = _GetFunction("ExecuteDaxQueriesInGroup"),
 
     facts =
     {
@@ -77,7 +79,11 @@ shared MyExtension.UnitTest =
         Fact("GetDatasetRefreshScheduleInGroup Should Be Correct Metadata", "Microsoft.PowerBI.ServiceContracts.Api.V1.RefreshSchedule", Text.AfterDelimiter(Json.Document(GetDatasetRefreshScheduleInGroup(GroupTestID, DatasetTestID))[#"@odata.context"], "#")),
 
         Fact("ExecuteQuery Should Be a Function", true, Value.Is(ExecuteQuery, Function.Type)),
-        Fact("ExecuteQueryInGroup Should Be a Function", true, Value.Is(ExecuteQueryInGroup, Function.Type))
+        Fact("ExecuteQueryInGroup Should Be a Function", true, Value.Is(ExecuteQueryInGroup, Function.Type)),
+        Fact("ExecuteQueryInGroup Should Return Results Collection For EVALUATE DateDim", true, Record.HasFields(Json.Document(ExecuteQueryInGroup(GroupTestID, DatasetTestID, "EVALUATE DateDim")), {"results"})),
+        Fact("ExecuteQueryInGroup Should Return At Least One Row For EVALUATE DateDim", true, List.Count(Json.Document(ExecuteQueryInGroup(GroupTestID, DatasetTestID, "EVALUATE DateDim"))[results]{0}[tables]{0}[rows]) > 0),
+        Fact("ExecuteDaxQueries Should Be a Function", true, Value.Is(ExecuteDaxQueries, Function.Type)),
+        Fact("ExecuteDaxQueriesInGroup Should Be a Function", true, Value.Is(ExecuteDaxQueriesInGroup, Function.Type))
     },
 
     results = Table.ReverseRows(Table.FromRecords(facts)),

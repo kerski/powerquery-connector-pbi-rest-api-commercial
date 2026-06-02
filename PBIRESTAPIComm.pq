@@ -57,6 +57,8 @@ let
             {"GetDatasetRefreshScheduleInGroup","GetDatasetRefreshScheduleInGroup",PBIRESTAPIComm.GetDatasetRefreshScheduleInGroup,"Function","GetDatasetRefreshScheduleInGroup",true},
             {"ExecuteQuery","ExecuteQuery",PBIRESTAPIComm.ExecuteQuery,"Function","ExecuteQuery",true},
             {"ExecuteQueryInGroup","ExecuteQueryInGroup",PBIRESTAPIComm.ExecuteQueryInGroup,"Function","ExecuteQueryInGroup",true},
+            {"ExecuteDaxQueries","ExecuteDaxQueries",PBIRESTAPIComm.ExecuteDaxQueries,"Function","ExecuteDaxQueries",true},
+            {"ExecuteDaxQueriesInGroup","ExecuteDaxQueriesInGroup",PBIRESTAPIComm.ExecuteDaxQueriesInGroup,"Function","ExecuteDaxQueriesInGroup",true},
             /* Reports */
             {"GetPaginatedReportDatasourcesInGroup","GetPaginatedReportDatasourcesInGroup",PBIRESTAPIComm.GetPaginatedReportDatasourcesInGroup,"Function","GetPaginatedReportDatasourcesInGroup",true},
             {"GetReportPageInGroup","GetReportPageInGroup",PBIRESTAPIComm.GetReportPageInGroup,"Function","GetReportPageInGroup",true},
@@ -1482,7 +1484,7 @@ ExecuteQueryInGroup = (optional groupId as text, optional datasetId as text, opt
                         impersonate = if (impersonatedUPN <> null and impersonatedUPN <> "") then ", ""impersonatedUserName"": """ & impersonatedUPN & """"
                                     else "",
                         /* Build parameters to send */
-                        params = [RelativePath = "v1.0/myorg/groups" & groupId & "/datasets/" & datasetId & "/executeQueries",
+                        params = [RelativePath = "v1.0/myorg/groups/" & groupId & "/datasets/" & datasetId & "/executeQueries",
                                     Headers = [ #"Content-Type" = "application/json"],
                                     Content = Text.ToBinary("{""queries"":[{""query"": """ & escapedJsonQuery & """}],""serializerSettings"":{""includeNulls"": false}" & impersonate & "}")
                                 ],
@@ -1492,6 +1494,208 @@ ExecuteQueryInGroup = (optional groupId as text, optional datasetId as text, opt
     in
         result;
 /*** End ExecuteQueryInGroup***/
+
+/*** ExecuteDaxQueries ***/
+shared PBIRESTAPIComm.ExecuteDaxQueries = Value.ReplaceType(
+    ExecuteDaxQueries,
+    ExecuteDaxQueriesType
+);
+
+ExecuteDaxQueriesType = type function (
+    optional datasetId as (
+        type text meta [
+            Documentation.FieldCaption = "Dataset ID",
+            Documentation.FieldDescription = "The Dataset ID",
+            Documentation.SampleValues = {
+                "xxx-xxxx-abcd..."
+            }
+        ]
+    ),
+    optional query as (
+        type text meta [
+            Documentation.FieldCaption = "DAX Query",
+            Documentation.FieldDescription = "A DAX query text.",
+            Documentation.SampleValues = {
+                "EVALUATE VALUES('Product'[Category])"
+            }
+        ]
+    ),
+    optional applicationContext as (
+        type text meta [
+            Documentation.FieldCaption = "Application Context",
+            Documentation.FieldDescription = "JSON structure containing additional information about an operation."
+        ]
+    ),
+    optional culture as (
+        type text meta [
+            Documentation.FieldCaption = "Culture",
+            Documentation.FieldDescription = "Culture code such as en-US."
+        ]
+    ),
+    optional customData as (
+        type text meta [
+            Documentation.FieldCaption = "Custom Data",
+            Documentation.FieldDescription = "Custom data for use in Dynamic RLS."
+        ]
+    ),
+    optional effectiveUsername as (
+        type text meta [
+            Documentation.FieldCaption = "Effective Username",
+            Documentation.FieldDescription = "Effective username for the query."
+        ]
+    ),
+    optional memoryLimit as (
+        type number meta [
+            Documentation.FieldCaption = "Memory Limit",
+            Documentation.FieldDescription = "Memory limit in KB for the query."
+        ]
+    ),
+    optional queryTimeout as (
+        type number meta [
+            Documentation.FieldCaption = "Query Timeout",
+            Documentation.FieldDescription = "Query timeout in seconds."
+        ]
+    ),
+    optional resultSetRowCountLimit as (
+        type number meta [
+            Documentation.FieldCaption = "Result Set Row Count Limit",
+            Documentation.FieldDescription = "Maximum number of rows to return."
+        ]
+    ),
+    optional roles as (
+        type list meta [
+            Documentation.FieldCaption = "Roles",
+            Documentation.FieldDescription = "Roles assigned to the user."
+        ]
+    ),
+    optional schemaOnly as (
+        type logical meta [
+            Documentation.FieldCaption = "Schema Only",
+            Documentation.FieldDescription = "Whether the query should return schema only."
+        ]
+    )
+) as table meta [
+    Documentation.Name = "PBIRESTAPIComm.ExecuteDaxQueries",
+    Documentation.LongDescription = "Executes DAX queries and returns a native table. Arrow payloads are auto-detected and parsed when supported.",
+    Documentation.Examples = {
+        [
+            Code = "=PBIRESTAPIComm.ExecuteDaxQueries(""xxx-xxxx-abcd..."",""EVALUATE VALUES('Product'[Category])"",null,""en-US"")",
+            Result = "Defined as https://learn.microsoft.com/en-us/rest/api/power-bi/datasets/execute-dax-queries"
+        ]
+    }
+];
+
+ExecuteDaxQueries = (
+    optional datasetId as text,
+    optional query as text,
+    optional applicationContext as text,
+    optional culture as text,
+    optional customData as text,
+    optional effectiveUsername as text,
+    optional memoryLimit as number,
+    optional queryTimeout as number,
+    optional resultSetRowCountLimit as number,
+    optional roles as list,
+    optional schemaOnly as logical
+) =>
+    let
+        doArgumentsExist = if(datasetId <> null and datasetId <> "") and (query <> null and query <> "") then true else false,
+        result = if doArgumentsExist = false then
+                    #table(type table [response = text],{{"Please provide datasetId and query arguments"}})
+                 else
+                    let
+                        payload = BuildExecuteDaxRequestPayload(query, applicationContext, culture, customData, effectiveUsername, memoryLimit, queryTimeout, resultSetRowCountLimit, roles, schemaOnly),
+                        params = [
+                            RelativePath = "v1.0/myorg/datasets/" & datasetId & "/executeDaxQueries",
+                            Headers = [#"Content-Type" = "application/json", Accept = "application/vnd.apache.arrow.stream, application/vnd.apache.arrow.file, application/octet-stream, application/json"],
+                            Content = Json.FromValue(payload),
+                            ManualStatusHandling = {200, 400}
+                        ],
+                        postResult = PostExecuteDax(params)
+                    in
+                        postResult
+    in
+        result;
+/*** End ExecuteDaxQueries***/
+
+/*** ExecuteDaxQueriesInGroup ***/
+shared PBIRESTAPIComm.ExecuteDaxQueriesInGroup = Value.ReplaceType(
+    ExecuteDaxQueriesInGroup,
+    ExecuteDaxQueriesInGroupType
+);
+
+ExecuteDaxQueriesInGroupType = type function (
+    optional groupId as (
+        type text meta [
+            Documentation.FieldCaption = "Group ID",
+            Documentation.FieldDescription = "The workspace ID."
+        ]
+    ),
+    optional datasetId as (
+        type text meta [
+            Documentation.FieldCaption = "Dataset ID",
+            Documentation.FieldDescription = "The Dataset ID"
+        ]
+    ),
+    optional query as (
+        type text meta [
+            Documentation.FieldCaption = "DAX Query",
+            Documentation.FieldDescription = "A DAX query text."
+        ]
+    ),
+    optional applicationContext as text,
+    optional culture as text,
+    optional customData as text,
+    optional effectiveUsername as text,
+    optional memoryLimit as number,
+    optional queryTimeout as number,
+    optional resultSetRowCountLimit as number,
+    optional roles as list,
+    optional schemaOnly as logical
+) as table meta [
+    Documentation.Name = "PBIRESTAPIComm.ExecuteDaxQueriesInGroup",
+    Documentation.LongDescription = "Executes DAX queries in a workspace and returns a native table. Arrow payloads are auto-detected and parsed when supported.",
+    Documentation.Examples = {
+        [
+            Code = "=PBIRESTAPIComm.ExecuteDaxQueriesInGroup(""xxx-xxxx-group..."",""xxx-xxxx-dataset..."",""EVALUATE VALUES('Product'[Category])"")",
+            Result = "Defined as https://learn.microsoft.com/en-us/rest/api/power-bi/datasets/execute-dax-queries-in-group"
+        ]
+    }
+];
+
+ExecuteDaxQueriesInGroup = (
+    optional groupId as text,
+    optional datasetId as text,
+    optional query as text,
+    optional applicationContext as text,
+    optional culture as text,
+    optional customData as text,
+    optional effectiveUsername as text,
+    optional memoryLimit as number,
+    optional queryTimeout as number,
+    optional resultSetRowCountLimit as number,
+    optional roles as list,
+    optional schemaOnly as logical
+) =>
+    let
+        doArgumentsExist = if(groupId <> null and groupId <> "") and (datasetId <> null and datasetId <> "") and (query <> null and query <> "") then true else false,
+        result = if doArgumentsExist = false then
+                    #table(type table [response = text],{{"Please provide groupId, datasetId and query arguments"}})
+                 else
+                    let
+                        payload = BuildExecuteDaxRequestPayload(query, applicationContext, culture, customData, effectiveUsername, memoryLimit, queryTimeout, resultSetRowCountLimit, roles, schemaOnly),
+                        params = [
+                            RelativePath = "v1.0/myorg/groups/" & groupId & "/datasets/" & datasetId & "/executeDaxQueries",
+                            Headers = [#"Content-Type" = "application/json", Accept = "application/vnd.apache.arrow.stream, application/vnd.apache.arrow.file, application/octet-stream, application/json"],
+                            Content = Json.FromValue(payload),
+                            ManualStatusHandling = {200, 400}
+                        ],
+                        postResult = PostExecuteDax(params)
+                    in
+                        postResult
+    in
+        result;
+/*** End ExecuteDaxQueriesInGroup***/
 
 
 /*****************
@@ -2756,6 +2960,148 @@ GetScorecardByReportIdInGroup = (optional groupdId as text, optional reportId as
 /*****************
     HELPER FUNCTIONS
 *****************/
+BuildExecuteDaxRequestPayload = (
+    query as text,
+    optional applicationContext as nullable text,
+    optional culture as nullable text,
+    optional customData as nullable text,
+    optional effectiveUsername as nullable text,
+    optional memoryLimit as nullable number,
+    optional queryTimeout as nullable number,
+    optional resultSetRowCountLimit as nullable number,
+    optional roles as nullable list,
+    optional schemaOnly as nullable logical
+) as record =>
+    let
+        rawPayload = [
+            query = query,
+            applicationContext = applicationContext,
+            culture = culture,
+            customData = customData,
+            effectiveUsername = effectiveUsername,
+            memoryLimit = memoryLimit,
+            queryTimeout = queryTimeout,
+            resultSetRowCountLimit = resultSetRowCountLimit,
+            roles = roles,
+            schemaOnly = schemaOnly
+        ],
+        nullFieldNames = List.Select(Record.FieldNames(rawPayload), each Record.Field(rawPayload, _) = null),
+        payload = if List.Count(nullFieldNames) > 0 then Record.RemoveFields(rawPayload, nullFieldNames) else rawPayload
+    in
+        payload;
+
+PostExecuteDax = (params as record) as table =>
+    let
+        webSource = Web.Contents(
+            "https://api.powerbi.com",
+            params
+        ),
+        headers = try Value.Metadata(webSource)[Headers] otherwise [],
+        buffered = Binary.Buffer(webSource),
+        result = ExecuteDaxResponseAsTable(buffered, headers)
+    in
+        result;
+
+ExecuteDaxResponseAsTable = (response as binary, optional headers as nullable record) as table =>
+    let
+        result = if ArrowDetectionIsArrowResponse(response, headers)
+                    then ArrowFromBinary(response)
+                    else
+                        let
+                            jsonText = Text.FromBinary(response)
+                        in
+                            #table(type table [response = text], {{jsonText}})
+    in
+        result;
+
+ArrowDetectionContentTypes = {
+    "application/vnd.apache.arrow.stream",
+    "application/vnd.apache.arrow.file",
+    "application/octet-stream"
+};
+
+ArrowDetectionGetContentType = (optional headers as nullable record) as nullable text =>
+    let
+        h = if headers = null then [] else headers,
+        contentType = if Record.HasFields(h, "Content-Type") then Record.Field(h, "Content-Type")
+            else if Record.HasFields(h, "content-type") then Record.Field(h, "content-type")
+            else null,
+        normalized = if contentType = null then null else Text.Lower(Text.BeforeDelimiter(Text.From(contentType), ";"))
+    in
+        normalized;
+
+ArrowDetectionHasArrowMagic = (payload as binary) as logical =>
+    let
+        head = try Text.Lower(Binary.ToText(Binary.Range(payload, 0, 6), BinaryEncoding.Hex)) otherwise "",
+        tailOffset = Binary.Length(payload) - 6,
+        tail = if tailOffset >= 0 then (try Text.Lower(Binary.ToText(Binary.Range(payload, tailOffset, 6), BinaryEncoding.Hex)) otherwise "") else ""
+    in
+        head = "4152524f5731" or tail = "4152524f5731";
+
+ArrowDetectionIsArrowContentType = (optional headers as nullable record) as logical =>
+    let
+        contentType = ArrowDetectionGetContentType(headers)
+    in
+        contentType <> null and List.Contains(ArrowDetectionContentTypes, contentType);
+
+ArrowDetectionIsArrowResponse = (payload as binary, optional headers as nullable record) as logical =>
+    ArrowDetectionHasArrowMagic(payload) or ArrowDetectionIsArrowContentType(headers);
+
+ArrowDetectionLooksLikeLz4Frame = (payload as binary) as logical =>
+    let
+        frameMagicHex = try Text.Lower(Binary.ToText(Binary.Range(payload, 0, 4), BinaryEncoding.Hex)) otherwise ""
+    in
+        frameMagicHex = "04224d18";
+
+ArrowError = (message as text, module as text, stage as text, optional details as nullable record) as none =>
+    let
+        context = if details = null then [Module = module, Stage = stage] else Record.Combine({[Module = module, Stage = stage], details})
+    in
+        error Error.Record("Arrow", message, context);
+
+ArrowFromBinary = (payload as binary) as table =>
+    let
+        buffered = Binary.Buffer(payload),
+        _hasMagic = if ArrowDetectionHasArrowMagic(buffered)
+            then true
+            else ArrowError("Invalid Arrow magic", "Arrow.Detection", "MagicValidation", [Offset = 0]),
+        _compressionCheck = if ArrowDetectionLooksLikeLz4Frame(buffered)
+            then ArrowError("Unsupported compression", "Arrow.RecordBatch", "Compression", [Compression = "LZ4_FRAME"])
+            else true,
+        _unsupported = ArrowError("Malformed Flatbuffers or unsupported Arrow IPC payload", "Arrow.Flatbuffers", "RootTable", [Offset = 0])
+    in
+        _unsupported;
+
+Arrow = [
+    FromBinary = ArrowFromBinary,
+    Detection = [
+        IsArrowResponse = ArrowDetectionIsArrowResponse,
+        HasArrowMagic = ArrowDetectionHasArrowMagic,
+        IsArrowContentType = ArrowDetectionIsArrowContentType,
+        GetContentType = ArrowDetectionGetContentType
+    ],
+    BinaryEx = [
+        Buffer = (binary as binary) as binary => Binary.Buffer(binary),
+        Slice = (binary as binary, offset as number, length as number) as binary => Binary.Range(binary, offset, length),
+        Length = (binary as binary) as number => Binary.Length(binary)
+    ],
+    Flatbuffers = [
+        ReadRoot = (binary as binary) as none => ArrowError("Malformed Flatbuffers", "Arrow.Flatbuffers", "ReadRoot", [Offset = 0])
+    ],
+    Schema = [
+        Read = (binary as binary) as none => ArrowError("Unsupported type", "Arrow.Schema", "ReadSchema")
+    ],
+    Arrays = [
+        Read = (binary as binary) as none => ArrowError("Unsupported encoding", "Arrow.Arrays", "ReadArray")
+    ],
+    RecordBatch = [
+        Read = (binary as binary) as none => ArrowError("Truncated buffers", "Arrow.RecordBatch", "ReadBatch")
+    ],
+    Materialization = [
+        ToTable = (columns as list) as table => Table.FromColumns(columns)
+    ]
+];
+
 GetFile = (optional relPath as text) =>
     let
         params = [Headers=[Accept="application/octet-stream"], RelativePath = relPath],

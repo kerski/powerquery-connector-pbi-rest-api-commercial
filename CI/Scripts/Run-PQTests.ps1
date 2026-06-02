@@ -12,14 +12,23 @@ Author: John Kerski
 
     Use Compile set to False when you just want to run tests.
 
+.PARAMETER TestFileName
+    Optional test file name(s) to run instead of the full suite.
+    Accepts exact file names (for example PBIRESTAPIComm.tests.datasets.query.pq)
+    or full relative paths from the repo root.
+
     Example: 
         -Compile $False
 
 .EXAMPLE
     ./Run-PBITests.ps1
     ./Run-PBITests.ps1 -Compile $False
+    ./Run-PBITests.ps1 -Compile $False -TestFileName PBIRESTAPIComm.tests.datasets.query.pq
 #>
-param([Boolean]$Compile = $True)
+param(
+    [Boolean]$Compile = $True,
+    [string[]]$TestFileName
+)
 
 # Install Powershell Module if Needed
 if (Get-Module -ListAvailable -Name "MicrosoftPowerBIMgmt") {
@@ -93,6 +102,43 @@ $RelQueryFilePaths = @(
     ".\\PBIRESTAPIComm.tests.pipelines.query.pq",
     ".\\PBIRESTAPIComm.tests.scorecards.query.pq"
 )
+
+if($TestFileName -and $TestFileName.Count -gt 0){
+    $RequestedTestNames = @()
+    foreach($Name in $TestFileName){
+        $RequestedTestNames += ($Name -split ',')
+    }
+
+    $RequestedTestNames = $RequestedTestNames |
+        ForEach-Object { $_.Trim() } |
+        Where-Object { $_ -ne "" }
+
+    $FilteredRelQueryFilePaths = @()
+    foreach($RelPath in $RelQueryFilePaths){
+        $LeafName = Split-Path -Path $RelPath -Leaf
+        $Matched = $false
+
+        foreach($RequestedName in $RequestedTestNames){
+            if($RequestedName -eq $LeafName -or $RequestedName -eq $RelPath -or $RequestedName -eq $RelPath.Replace(".\\", "")){
+                $Matched = $true
+            }
+        }
+
+        if($Matched){
+            $FilteredRelQueryFilePaths += $RelPath
+        }
+    }
+
+    if($FilteredRelQueryFilePaths.Count -eq 0){
+        Write-Error "No test files matched the provided -TestFileName value(s): $($RequestedTestNames -join ', ')"
+        Write-Error "Available test files: $($RelQueryFilePaths -join ', ')"
+        return 0
+    }
+
+    $RelQueryFilePaths = $FilteredRelQueryFilePaths
+    Write-Host "Running selected test files: $($RelQueryFilePaths -join ', ')"
+}
+
 # Get full path because PQTest expects that
 $ExtensionFilePath = (Resolve-Path -Path $RelExtFilePath).Path
 $QueryCredFilePath = (Resolve-Path -Path $RelQueryCredFilePath).Path
