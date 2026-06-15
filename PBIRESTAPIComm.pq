@@ -4350,7 +4350,7 @@ PostJSON = (optional params as record) =>
 PBIRESTAPIComm = [
     TestConnection = (dataSourcePath) =>  { "PBIRESTAPIComm.FunctionCatalog"},
     Authentication = [
-        Aad = [
+        AAD = [
             AuthorizationUri = "https://login.windows.net/common/oauth2/authorize",
             Resource = "https://analysis.windows.net/powerbi/api"
         ]
