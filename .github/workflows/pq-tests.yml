@@ -36,6 +36,7 @@ jobs:
   focused-gate:
     name: Focused Arrow parity gate
     runs-on: windows-latest
+    environment: ci-actions
     env:
       BUILD_SOURCEVERSION: ${{ github.sha }}
       TEST_CONFIG_JSON: ${{ secrets.TEST_CONFIG_JSON }}
@@ -80,6 +81,7 @@ jobs:
     runs-on: windows-latest
     needs: focused-gate
     if: github.event_name == 'workflow_dispatch' && github.event.inputs.run_full_suite == 'true'
+    environment: ci-actions
     env:
       BUILD_SOURCEVERSION: ${{ github.sha }}
       TEST_CONFIG_JSON: ${{ secrets.TEST_CONFIG_JSON }}
