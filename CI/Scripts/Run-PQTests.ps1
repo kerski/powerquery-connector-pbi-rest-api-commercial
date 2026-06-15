@@ -268,16 +268,21 @@ if($Compile -eq $True){
 }
   
 # Setup credentials
-$Template = $null
-$Template = & $PQTestExe credential-template --extension $ExtensionFilePath `
-                                             --queryFile $QueryCredFilePath
-# Output Template to Console for monitoring
-Write-Host $Template
+# PQTest generates OAuth2 by default, but our connector uses AAD authentication.
+# We need to manually construct an AAD credential template instead.
+$CredentialJson = @{
+    AuthenticationKind = "Aad"
+    AuthenticationProperties = @{
+        AccessToken = $AccessToken
+    }
+    PrivacySetting = "None"
+    Permissions = @()
+} | ConvertTo-Json -Compress
 
-# Update Template
-$Template = $Template.Replace('$$ACCESS_TOKEN$$',$AccessToken)
+Write-Host "Using AAD authentication credential:"
+Write-Host $CredentialJson
 
-$X = $Template | ConvertFrom-Json | ConvertTo-Json -Compress
+$X = $CredentialJson
 
 $Result = $null
 $Result = $X | & $PQTestExe set-credential `
