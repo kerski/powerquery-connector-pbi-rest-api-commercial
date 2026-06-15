@@ -290,38 +290,17 @@ $Result = $X | & $PQTestExe set-credential `
 				--queryFile $QueryCredFilePath `
 				--prettyPrint
 
-    $parsed = $null
-    try {
-        $parsed = $result | ConvertFrom-Json
-    }
-    catch {
-        $parsed = [PSCustomObject]@{
-            Status = "Failed"
-            Error = [PSCustomObject]@{ Message = [string]$result }
-        }
-    }
-
-    return $parsed
+try {
+    $TestSetCredential = $Result | ConvertFrom-Json
 }
-
-$TestSetCredential = Invoke-SetCredential -CredentialTemplate $TemplateJson
-
-if(!$TestSetCredential -or !($TestSetCredential.Status -like 'Success')){
-    $errorMessage = if($TestSetCredential -and $TestSetCredential.Error) { [string]$TestSetCredential.Error.Message } else { "" }
-    $canRetry = $TemplateJson.PSObject.Properties.Name -contains "AuthenticationKind"
-
-    if($canRetry -and $errorMessage -like "*does not support the 'OAuth2'*"){
-        $TemplateJson.AuthenticationKind = "AAD"
-        $TestSetCredential = Invoke-SetCredential -CredentialTemplate $TemplateJson
-    }
-    elseif($canRetry -and $errorMessage -like "*does not support the 'AAD'*"){
-        $TemplateJson.AuthenticationKind = "OAuth2"
-        $TestSetCredential = Invoke-SetCredential -CredentialTemplate $TemplateJson
-    }
+catch {
+    Write-Error "Failed to parse set-credential response: $Result"
+    return 0
 }
 
 if(!$TestSetCredential -or !($TestSetCredential.Status -like 'Success')){
-    Write-Error "Failed to create credential"
+    $CredentialErrorMessage = if($TestSetCredential -and $TestSetCredential.Error) { [string]$TestSetCredential.Error.Message } else { [string]$Result }
+    Write-Error "Failed to create credential: $CredentialErrorMessage"
     return 0
 }
 else{
