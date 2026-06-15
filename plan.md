@@ -13,16 +13,14 @@
   Update status as tasks are completed.
 -->
 
-### Phase 3: No-Fallback Enforcement For ExecuteDaxQueries
+### Phase 4: GitHub Actions Smoke Verification
 **Epic**: [tasks/no-fallback-enforcement-executedaxqueries-epic.md](tasks/no-fallback-enforcement-executedaxqueries-epic.md)
-**Status**: 📋 PLANNED
-**Goal**: Enforce and verify that ExecuteDaxQueries endpoint paths never fall back to ExecuteQuery endpoint paths.
+**Status**: ⏳ PENDING VERIFICATION
+**Goal**: Validate end-to-end GitHub Actions execution with ci-actions environment and TEST_CONFIG_JSON secret.
 
 **Tasks**:
-- 📋 Define no-fallback contract tests
-- 📋 Add static call-chain guard
-- 📋 Harden ExecuteDax response pipeline
-- 📋 Integrate targeted test execution
+- ⏳ Run workflow_dispatch focused test against `PBIRESTAPIComm.tests.datasets.nofallback.query.pq`
+- ⏳ Confirm ci-actions environment secrets and protection flow are satisfied
 
 ---
 
@@ -31,6 +29,17 @@
 <!--
   Archive completed phases here as a historical record.
 -->
+
+### Phase 3: No-Fallback Enforcement For ExecuteDaxQueries
+**Epic**: [tasks/no-fallback-enforcement-executedaxqueries-epic.md](tasks/no-fallback-enforcement-executedaxqueries-epic.md)
+**Status**: ✅ COMPLETED (2026-06-15)
+**Goal**: Enforce and verify that ExecuteDaxQueries endpoint paths never fall back to ExecuteQuery endpoint paths.
+
+**Tasks**:
+- ✅ Define no-fallback contract tests
+- ✅ Add static call-chain guard
+- ✅ Harden ExecuteDax response pipeline
+- ✅ Integrate targeted test execution
 
 ### Phase 2: Dataset Parity Integration Tests
 **Epic**: [tasks/dataset-parity-integration-tests-epic.md](tasks/dataset-parity-integration-tests-epic.md)

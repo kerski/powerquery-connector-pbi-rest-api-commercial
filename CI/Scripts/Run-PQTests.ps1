@@ -277,15 +277,49 @@ Write-Host $Template
 # Update Template
 $Template = $Template.Replace('$$ACCESS_TOKEN$$',$AccessToken)
 
-$X = $Template | ConvertFrom-Json | ConvertTo-Json -Compress
+$TemplateJson = $Template | ConvertFrom-Json
 
-$Result = $null
-$Result = $X | & $PQTestExe set-credential `
-                --extension $ExtensionFilePath `
-				--queryFile $QueryCredFilePath `
-				--prettyPrint
+function Invoke-SetCredential {
+    param(
+        [Parameter(Mandatory = $true)]
+        [pscustomobject]$CredentialTemplate
+    )
 
-$TestSetCredential = $Result | ConvertFrom-Json
+    $payload = $CredentialTemplate | ConvertTo-Json -Compress
+    $result = $payload | & $PQTestExe set-credential `
+                    --extension $ExtensionFilePath `
+                    --queryFile $QueryCredFilePath `
+                    --prettyPrint
+
+    $parsed = $null
+    try {
+        $parsed = $result | ConvertFrom-Json
+    }
+    catch {
+        $parsed = [PSCustomObject]@{
+            Status = "Failed"
+            Error = [PSCustomObject]@{ Message = [string]$result }
+        }
+    }
+
+    return $parsed
+}
+
+$TestSetCredential = Invoke-SetCredential -CredentialTemplate $TemplateJson
+
+if(!$TestSetCredential -or !($TestSetCredential.Status -like 'Success')){
+    $errorMessage = if($TestSetCredential -and $TestSetCredential.Error) { [string]$TestSetCredential.Error.Message } else { "" }
+    $canRetry = $TemplateJson.PSObject.Properties.Name -contains "AuthenticationKind"
+
+    if($canRetry -and $errorMessage -like "*does not support the 'OAuth2'*"){
+        $TemplateJson.AuthenticationKind = "AAD"
+        $TestSetCredential = Invoke-SetCredential -CredentialTemplate $TemplateJson
+    }
+    elseif($canRetry -and $errorMessage -like "*does not support the 'AAD'*"){
+        $TemplateJson.AuthenticationKind = "OAuth2"
+        $TestSetCredential = Invoke-SetCredential -CredentialTemplate $TemplateJson
+    }
+}
 
 if(!$TestSetCredential -or !($TestSetCredential.Status -like 'Success')){
     Write-Error "Failed to create credential"

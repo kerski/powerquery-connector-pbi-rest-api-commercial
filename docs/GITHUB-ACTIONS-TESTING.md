@@ -16,11 +16,15 @@ The workflow is designed for reliable, low-cost iteration by defaulting to targe
 
 ## Required Repository Secrets
 
-Set this repository secret before running the workflow:
+Set this environment secret before running the workflow:
 
 - `TEST_CONFIG_JSON`
 
 `TEST_CONFIG_JSON` must be a valid JSON object matching `CI/Scripts/variables.test.json` structure and include non-empty `PPU_USERNAME` and `PPU_PASSWORD` fields.
+
+Environment scope:
+- The workflow jobs run in the `ci-actions` GitHub Actions environment.
+- Configure `TEST_CONFIG_JSON` under **Settings > Environments > ci-actions > Secrets**.
 
 The workflow fails early if the secret is missing or invalid.
 
@@ -91,10 +95,13 @@ Full split suite:
 Common issues:
 
 - Missing secret error:
-  - Confirm `TEST_CONFIG_JSON` is configured in repository settings.
+  - Confirm `TEST_CONFIG_JSON` is configured in the `ci-actions` environment secrets.
+  - Confirm workflow jobs are bound to `environment: ci-actions`.
 - Invalid JSON error:
   - Confirm `TEST_CONFIG_JSON` is valid JSON and includes `PPU_USERNAME` and `PPU_PASSWORD`.
 - Auth prompt or interactive login behavior:
   - Confirm workflow env includes `BUILD_SOURCEVERSION`.
+- Environment secret still not available:
+  - Confirm environment protection rules (required reviewers/wait timers) are satisfied before the job starts.
 - No matching test file when manually dispatching:
   - Use exact file name from split test files, for example `PBIRESTAPIComm.tests.reports.query.pq`.
