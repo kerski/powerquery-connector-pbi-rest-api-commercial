@@ -8,9 +8,17 @@ jobs:
   steps:
   - checkout: self
   - task: PowerShell@2
+    displayName: Dataset Arrow Parity Gate
+    inputs:
+      filePath: CI/Scripts/Run-PQTests.ps1
+      arguments: -Compile $true -TestFileName PBIRESTAPIComm.tests.datasets.parity.query.pq
+    env:
+      PPU_PASSWORD: $(PPU_PASSWORD) # Maps the secret variable
+  - task: PowerShell@2
     displayName: Continuous Integration
     inputs:
       filePath: CI/Scripts/Run-PQTests.ps1
+      arguments: -Compile $false
     env:
       PPU_PASSWORD: $(PPU_PASSWORD) # Maps the secret variable
   - task: CopyFiles@2

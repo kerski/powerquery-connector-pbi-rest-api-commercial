@@ -1,0 +1,117 @@
+name: Power Query Connector Tests
+
+on:
+  pull_request:
+    paths:
+      - "PBIRESTAPIComm.pq"
+      - "PBIRESTAPIComm.tests.*.query.pq"
+      - "CI/Scripts/**"
+      - ".github/workflows/pq-tests.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "PBIRESTAPIComm.pq"
+      - "PBIRESTAPIComm.tests.*.query.pq"
+      - "CI/Scripts/**"
+      - ".github/workflows/pq-tests.yml"
+  workflow_dispatch:
+    inputs:
+      test_file:
+        description: "Target test file for focused run"
+        required: false
+        default: "PBIRESTAPIComm.tests.datasets.parity.query.pq"
+      run_full_suite:
+        description: "Run full split suite after focused gate"
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  focused-gate:
+    name: Focused Arrow parity gate
+    runs-on: windows-latest
+    env:
+      BUILD_SOURCEVERSION: ${{ github.sha }}
+      TEST_CONFIG_JSON: ${{ secrets.TEST_CONFIG_JSON }}
+      PPU_USERNAME: ${{ secrets.PPU_USERNAME }}
+      PPU_PASSWORD: ${{ secrets.PPU_PASSWORD }}
+      TEST_FILE: ${{ github.event.inputs.test_file != '' && github.event.inputs.test_file || 'PBIRESTAPIComm.tests.datasets.parity.query.pq' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate required secrets
+        shell: pwsh
+        run: |
+          if ([string]::IsNullOrWhiteSpace("$env:TEST_CONFIG_JSON")) {
+            throw "Missing required secret: TEST_CONFIG_JSON"
+          }
+
+      - name: Create variables.test.json from TEST_CONFIG_JSON
+        shell: pwsh
+        run: |
+          $raw = $env:TEST_CONFIG_JSON
+          try {
+            $config = $raw | ConvertFrom-Json
+          }
+          catch {
+            throw "TEST_CONFIG_JSON is not valid JSON."
+          }
+
+          if ([string]::IsNullOrWhiteSpace([string]$config.PPU_USERNAME) -or [string]::IsNullOrWhiteSpace([string]$config.PPU_PASSWORD)) {
+            throw "TEST_CONFIG_JSON must include non-empty PPU_USERNAME and PPU_PASSWORD."
+          }
+
+          $raw | Set-Content -Path "CI/Scripts/variables.test.json" -Encoding utf8
+
+      - name: Run focused test file
+        shell: pwsh
+        run: |
+          ./CI/Scripts/Run-PQTests.ps1 -Compile $true -TestFileName $env:TEST_FILE
+
+  full-suite:
+    name: Full split suite
+    runs-on: windows-latest
+    needs: focused-gate
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.run_full_suite == 'true'
+    env:
+      BUILD_SOURCEVERSION: ${{ github.sha }}
+      TEST_CONFIG_JSON: ${{ secrets.TEST_CONFIG_JSON }}
+      PPU_USERNAME: ${{ secrets.PPU_USERNAME }}
+      PPU_PASSWORD: ${{ secrets.PPU_PASSWORD }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate required secrets
+        shell: pwsh
+        run: |
+          if ([string]::IsNullOrWhiteSpace("$env:TEST_CONFIG_JSON")) {
+            throw "Missing required secret: TEST_CONFIG_JSON"
+          }
+
+      - name: Create variables.test.json from TEST_CONFIG_JSON
+        shell: pwsh
+        run: |
+          $raw = $env:TEST_CONFIG_JSON
+          try {
+            $config = $raw | ConvertFrom-Json
+          }
+          catch {
+            throw "TEST_CONFIG_JSON is not valid JSON."
+          }
+
+          if ([string]::IsNullOrWhiteSpace([string]$config.PPU_USERNAME) -or [string]::IsNullOrWhiteSpace([string]$config.PPU_PASSWORD)) {
+            throw "TEST_CONFIG_JSON must include non-empty PPU_USERNAME and PPU_PASSWORD."
+          }
+
+          $raw | Set-Content -Path "CI/Scripts/variables.test.json" -Encoding utf8
+
+      - name: Run full split suite
+        shell: pwsh
+        run: |
+          ./CI/Scripts/Run-PQTests.ps1 -Compile $false

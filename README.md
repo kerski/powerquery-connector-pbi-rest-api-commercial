@@ -252,3 +252,5 @@ In order to test the custom data connector, please follow these instructions:
 4. When testing completes, review the per-file pass/fail output and the final summary table.
 
 ![Test Results](./documentation/images/test-results.png)
+
+5. For reliable CI execution with targeted test files in GitHub Actions, follow the workflow guide in `docs/GITHUB-ACTIONS-TESTING.md`.

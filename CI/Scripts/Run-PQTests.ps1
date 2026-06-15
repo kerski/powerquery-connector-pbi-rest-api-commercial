@@ -30,6 +30,74 @@ param(
     [string[]]$TestFileName
 )
 
+function Get-TextBetweenMarkers {
+    param(
+        [string]$Text,
+        [string]$StartMarker,
+        [string]$EndMarker
+    )
+
+    $start = $Text.IndexOf($StartMarker)
+    if($start -lt 0){
+        return $null
+    }
+
+    $end = $Text.IndexOf($EndMarker, $start + $StartMarker.Length)
+    if($end -lt 0){
+        return $null
+    }
+
+    return $Text.Substring($start, ($end + $EndMarker.Length) - $start)
+}
+
+function Test-NoFallbackCallChain {
+    param(
+        [string]$ConnectorFilePath
+    )
+
+    if(!(Test-Path -Path $ConnectorFilePath)){
+        Write-Error "No-fallback guard could not find connector source file: $ConnectorFilePath"
+        return $false
+    }
+
+    $source = Get-Content -Path $ConnectorFilePath -Raw
+    $forbiddenSymbols = @("ExecuteQuery", "ExecuteQueryInGroup")
+    $blockSpecs = @(
+        @{ Name = "ExecuteDaxQueries"; Start = "/*** ExecuteDaxQueries ***/"; End = "/*** End ExecuteDaxQueries***/" },
+        @{ Name = "ExecuteDaxQueriesInGroup"; Start = "/*** ExecuteDaxQueriesInGroup ***/"; End = "/*** End ExecuteDaxQueriesInGroup***/" },
+        @{ Name = "PostExecuteDax"; Start = "PostExecuteDax = (params as record) as table =>"; End = "ExecuteDaxJsonToTable = (response as binary) as table =>" },
+        @{ Name = "ExecuteDaxResponseAsTable"; Start = "ExecuteDaxResponseAsTable = (response as binary, optional headers as nullable record) as table =>"; End = "ArrowDetectionContentTypes = {" }
+    )
+
+    $violations = @()
+    foreach($blockSpec in $blockSpecs){
+        $blockText = Get-TextBetweenMarkers -Text $source -StartMarker $blockSpec.Start -EndMarker $blockSpec.End
+        if($null -eq $blockText){
+            Write-Error "No-fallback guard could not locate block '$($blockSpec.Name)' using expected markers."
+            return $false
+        }
+
+        foreach($symbol in $forbiddenSymbols){
+            if($blockText -match ("\b" + [regex]::Escape($symbol) + "\b")){
+                $violations += [PSCustomObject]@{
+                    Block = $blockSpec.Name
+                    Symbol = $symbol
+                }
+            }
+        }
+    }
+
+    if($violations.Count -gt 0){
+        foreach($violation in $violations){
+            Write-Error "No-fallback guard violation: block '$($violation.Block)' references forbidden symbol '$($violation.Symbol)'."
+        }
+        return $false
+    }
+
+    Write-Host "No-fallback static guard passed: ExecuteDax call chain has no forbidden ExecuteQuery references"
+    return $true
+}
+
 # Install Powershell Module if Needed
 if (Get-Module -ListAvailable -Name "MicrosoftPowerBIMgmt") {
     Write-Host "MicrosoftPowerBIMgmt already installed"
@@ -37,23 +105,6 @@ if (Get-Module -ListAvailable -Name "MicrosoftPowerBIMgmt") {
     Install-Module -Name MicrosoftPowerBIMgmt -Scope CurrentUser -AllowClobber -Force
 }
 
-# Check if we are running locally or in a pipeline
-if(${env:BUILD_SOURCEVERSION}) # assumes this only exists in Azure Pipelines
-{
-    # Get from environment
-    $UserName = "${env:PPU_USERNAME}"
-    $Password = "${env:PPU_PASSWORD}"    
-    #Set Password as Secure String
-    $Secret = $Password | ConvertTo-SecureString -AsPlainText -Force
-    $Credentials = [System.Management.Automation.PSCredential]::new($UserName,$Secret)
-    #Connect to Power BI
-    Connect-PowerBIServiceAccount -Credential $Credentials
-
-}
-else { # Runs Local so will ask to sign in
-    Connect-PowerBIServiceAccount
-}
-       
 # Setup Test File Path
 $RelTestFilePath = ".\\CI\\Scripts\\variables.test.json"
 $RelTestTemplateFilePath = ".\\CI\\Scripts\\variables.test.template.json"
@@ -65,6 +116,53 @@ if(!(Test-Path -Path $RelTestFilePath)){
 }
 
 $TestFilePath = (Resolve-Path -Path $RelTestFilePath).Path
+
+$TestVariables = Get-Content -Path $TestFilePath -Raw | ConvertFrom-Json
+
+function Get-TestVariableValue {
+    param(
+        [Parameter(Mandatory = $true)]
+        [pscustomobject]$Variables,
+        [Parameter(Mandatory = $true)]
+        [string]$Name
+    )
+
+    if($Variables.PSObject.Properties.Name -contains $Name){
+        $value = [string]($Variables.$Name)
+        if(-not [string]::IsNullOrWhiteSpace($value)){
+            return $value
+        }
+    }
+
+    return $null
+}
+
+$PipelineUserName = if([string]::IsNullOrWhiteSpace("${env:PPU_USERNAME}")) { $null } else { "${env:PPU_USERNAME}" }
+$PipelinePassword = if([string]::IsNullOrWhiteSpace("${env:PPU_PASSWORD}")) { $null } else { "${env:PPU_PASSWORD}" }
+
+$ConfigUserName = Get-TestVariableValue -Variables $TestVariables -Name "PPU_USERNAME"
+if($null -eq $ConfigUserName){
+    $ConfigUserName = Get-TestVariableValue -Variables $TestVariables -Name "UserName"
+}
+
+$ConfigPassword = Get-TestVariableValue -Variables $TestVariables -Name "PPU_PASSWORD"
+if($null -eq $ConfigPassword){
+    $ConfigPassword = Get-TestVariableValue -Variables $TestVariables -Name "Password"
+}
+
+$UserName = if($null -ne $PipelineUserName) { $PipelineUserName } else { $ConfigUserName }
+$Password = if($null -ne $PipelinePassword) { $PipelinePassword } else { $ConfigPassword }
+
+if(($null -ne $UserName) -and ($null -ne $Password)){
+    # Connect non-interactively using credentials from pipeline env vars or local test variables.
+    $Secret = $Password | ConvertTo-SecureString -AsPlainText -Force
+    $Credentials = [System.Management.Automation.PSCredential]::new($UserName,$Secret)
+    Connect-PowerBIServiceAccount -Credential $Credentials
+}
+else {
+    # Fall back to interactive auth only when credentials are not configured.
+    Connect-PowerBIServiceAccount
+}
 
 # Prefer the newest VS Code SDK PQTest to avoid local credential-store version drift.
 $PQTestExe = ".\\CI\\PQTest\\PQTest.exe"
@@ -92,16 +190,27 @@ $AccessToken = $AccessToken.Values.Substring(7)
 # Relative Extension File Path
 $RelExtFilePath = ".\\bin\\AnyCPU\\Debug\\powerquery-connector-pbi-rest-api-commercial.mez"
 $RelQueryCredFilePath = ".\\PBIRESTAPICommCredTemplate.query.pq"
+$RelConnectorSourcePath = ".\\PBIRESTAPIComm.pq"
 $RelQueryFilePaths = @(
+    ".\\PBIRESTAPIComm.tests.arrow.helpers.query.pq",
     ".\\PBIRESTAPIComm.tests.apps.query.pq",
     ".\\PBIRESTAPIComm.tests.dashboards.query.pq",
     ".\\PBIRESTAPIComm.tests.dataflows.query.pq",
+    ".\\PBIRESTAPIComm.tests.datasets.nofallback.query.pq",
+    ".\\PBIRESTAPIComm.tests.datasets.parity.query.pq",
     ".\\PBIRESTAPIComm.tests.datasets.query.pq",
     ".\\PBIRESTAPIComm.tests.reports.query.pq",
     ".\\PBIRESTAPIComm.tests.groups.query.pq",
     ".\\PBIRESTAPIComm.tests.pipelines.query.pq",
     ".\\PBIRESTAPIComm.tests.scorecards.query.pq"
 )
+
+$ConnectorSourcePath = (Resolve-Path -Path $RelConnectorSourcePath).Path
+$NoFallbackGuardPassed = Test-NoFallbackCallChain -ConnectorFilePath $ConnectorSourcePath
+if(!$NoFallbackGuardPassed){
+    Write-Error "Static no-fallback guard failed. Remove ExecuteDax->ExecuteQuery references before running tests."
+    return 0
+}
 
 if($TestFileName -and $TestFileName.Count -gt 0){
     $RequestedTestNames = @()
