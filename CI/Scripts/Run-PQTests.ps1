@@ -290,10 +290,17 @@ $Result = $X | & $PQTestExe set-credential `
 				--queryFile $QueryCredFilePath `
 				--prettyPrint
 
-$TestSetCredential = $Result | ConvertFrom-Json
+try {
+    $TestSetCredential = $Result | ConvertFrom-Json
+}
+catch {
+    Write-Error "Failed to parse set-credential response: $Result"
+    return 0
+}
 
 if(!$TestSetCredential -or !($TestSetCredential.Status -like 'Success')){
-    Write-Error "Failed to create credential"
+    $CredentialErrorMessage = if($TestSetCredential -and $TestSetCredential.Error) { [string]$TestSetCredential.Error.Message } else { [string]$Result }
+    Write-Error "Failed to create credential: $CredentialErrorMessage"
     return 0
 }
 else{
