@@ -1,3 +1,6 @@
+trigger: none
+pr: none
+
 # Variable 'PPU_PASSWORD' was defined in the Variables tab
 # Variable 'PPU_USERNAME' was defined in the Variables tab
 jobs:
