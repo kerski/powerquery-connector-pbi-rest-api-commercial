@@ -1,8 +1,8 @@
 # Power Query Custom Data Connector for Power BI REST APIs (Commercial)
 
-This Custom Data Connector wraps many of the "Get" endpoints in the Power BI API (with the exception of the /executeQueries endpoint), so that OAuth can be used to authenticate to the service.  This connector serves as a way to have a library of Power Query functions to build datasets based on the Power BI APIs without the need for storing client secrets or passwords in the dataset.  
+This Custom Data Connector wraps many of the "Get" endpoints in the Power BI API, along with dataset query endpoints, so that OAuth can be used to authenticate to the service.  This connector serves as a way to have a library of Power Query functions to build datasets based on the Power BI APIs without the need for storing client secrets or passwords in the dataset.  
 
-Each function returns a JSON body and not a table of data.  This decision was made to provide flexibility in converting the JSON body to tabular data when 1) the API responses are changed by Microsoft or 2) the API responses differ between commercial and sovereign clouds (e.g., GCC, DoD, etc.). 
+Most functions return a JSON body and not a table of data.  This decision was made to provide flexibility in converting the JSON body to tabular data when 1) the API responses are changed by Microsoft or 2) the API responses differ between commercial and sovereign clouds (e.g., GCC, DoD, etc.). Query and export endpoints that return binary content are surfaced as binary values instead. 
 
 ## Table of Contents
 
@@ -118,6 +118,8 @@ Not all functions from the Power BI REST API have been implemented.  Here are th
 | GetDatasetDiscoverGatewaysInGroup                  | Returns a list of gateways that the specified dataset from the specified workspace can be bound to.  | [Datasets - Discover Gateways In Group](https://learn.microsoft.com/en-us/rest/api/power-bi/datasets/discover-gateways-in-group#gateways) |
 | ExecuteQuery                  | Executes a single Data Analysis Expressions (DAX) query against a dataset.  | [Dataset - Execute Queries](https://learn.microsoft.com/en-us/rest/api/power-bi/datasets/execute-queries) |
 | ExecuteQueryInGroup                 | Executes a single Data Analysis Expressions (DAX) query against a dataset within a workspace. | [Dataset - Execute Queries In Group](https://learn.microsoft.com/en-us/rest/api/power-bi/datasets/execute-queries-in-group) |
+| ExecuteDaxQueries                  | Executes DAX queries against a dataset in My workspace and returns Apache Arrow stream content.  | [Datasets - Execute Dax Queries](https://learn.microsoft.com/en-us/rest/api/power-bi/datasets/execute-dax-queries) |
+| ExecuteDaxQueriesInGroup                 | Executes DAX queries against a dataset in the specified workspace and returns Apache Arrow stream content. | [Datasets - Execute Dax Queries In Group](https://learn.microsoft.com/en-us/rest/api/power-bi/datasets/execute-dax-queries-in-group) |
 | GetDatasetInGroup             | Returns the specified dataset from the specified workspace.  | [Datasets - Get Dataset In Group](https://learn.microsoft.com/en-us/rest/api/power-bi/datasets/get-dataset-in-group) |
 | GetDatasetToDataflowsLinksInGroup             | Returns a list of upstream dataflows for datasets from the specified workspace.  | [Datasets - Get Dataset To Dataflows Links In Group](https://learn.microsoft.com/en-us/rest/api/power-bi/datasets/get-dataset-to-dataflows-links-in-group) |
 | GetDatasetUsersInGroup            | Returns a list of principals that have access to the specified dataset.  | [Datasets - Get Dataset Users In Group](https://learn.microsoft.com/en-us/rest/api/power-bi/datasets/get-dataset-users-in-group) |

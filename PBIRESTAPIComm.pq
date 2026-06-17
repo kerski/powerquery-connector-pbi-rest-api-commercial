@@ -1,7 +1,7 @@
 ﻿/*
     Author: John Kerski
 
-    Description: Connector wraps many of the "Get" endpoints in the Power BI API (with the exception of ExecuteQuery),
+    Description: Connector wraps many of the "Get" endpoints in the Power BI API, plus dataset query endpoints,
     so that OAuth can be used to authenticate to the service.  This connector serves
     as a way to have a library of Power Query functions to build datasets without the need
     for storing client secrets or passwords in the dataset.  The custom data connector will need
@@ -57,6 +57,8 @@ let
             {"GetDatasetRefreshScheduleInGroup","GetDatasetRefreshScheduleInGroup",PBIRESTAPIComm.GetDatasetRefreshScheduleInGroup,"Function","GetDatasetRefreshScheduleInGroup",true},
             {"ExecuteQuery","ExecuteQuery",PBIRESTAPIComm.ExecuteQuery,"Function","ExecuteQuery",true},
             {"ExecuteQueryInGroup","ExecuteQueryInGroup",PBIRESTAPIComm.ExecuteQueryInGroup,"Function","ExecuteQueryInGroup",true},
+            {"ExecuteDaxQueries","ExecuteDaxQueries",PBIRESTAPIComm.ExecuteDaxQueries,"Function","ExecuteDaxQueries",true},
+            {"ExecuteDaxQueriesInGroup","ExecuteDaxQueriesInGroup",PBIRESTAPIComm.ExecuteDaxQueriesInGroup,"Function","ExecuteDaxQueriesInGroup",true},
             /* Reports */
             {"GetPaginatedReportDatasourcesInGroup","GetPaginatedReportDatasourcesInGroup",PBIRESTAPIComm.GetPaginatedReportDatasourcesInGroup,"Function","GetPaginatedReportDatasourcesInGroup",true},
             {"GetReportPageInGroup","GetReportPageInGroup",PBIRESTAPIComm.GetReportPageInGroup,"Function","GetReportPageInGroup",true},
@@ -1493,6 +1495,318 @@ ExecuteQueryInGroup = (optional groupId as text, optional datasetId as text, opt
         result;
 /*** End ExecuteQueryInGroup***/
 
+/*** ExecuteDaxQueries ***/
+shared PBIRESTAPIComm.ExecuteDaxQueries = Value.ReplaceType(
+    ExecuteDaxQueries,
+    ExecuteDaxQueriesType
+);
+
+ExecuteDaxQueriesType = type function (
+    optional datasetId as (
+        type text meta [
+            Documentation.FieldCaption = "Dataset ID",
+            Documentation.FieldDescription = "The dataset ID.",
+            Documentation.SampleValues = {
+                "xxx-xxxx-abcd..."
+            }
+        ]
+    ),
+    optional daxQuery as (
+        type text meta [
+            Documentation.FieldCaption = "Query",
+            Documentation.FieldDescription = "Query text.",
+            Documentation.SampleValues = {
+                "EVALUATE VALUES('Product'[Category])"
+            }
+        ]
+    ),
+    optional applicationContext as (
+        type text meta [
+            Documentation.FieldCaption = "Application Context",
+            Documentation.FieldDescription = "JSON structure containing additional information about an operation.",
+            Documentation.SampleValues = {
+                "{""name"":""PowerQueryConnector""}"
+            }
+        ]
+    ),
+    optional culture as (
+        type text meta [
+            Documentation.FieldCaption = "Culture",
+            Documentation.FieldDescription = "Culture code that controls locale-specific query formatting.",
+            Documentation.SampleValues = {
+                "en-US"
+            }
+        ]
+    ),
+    optional customData as (
+        type text meta [
+            Documentation.FieldCaption = "Custom Data",
+            Documentation.FieldDescription = "Custom data for use in Dynamic RLS.",
+            Documentation.SampleValues = {
+                "North America"
+            }
+        ]
+    ),
+    optional effectiveUsername as (
+        type text meta [
+            Documentation.FieldCaption = "Effective Username",
+            Documentation.FieldDescription = "Effective username for the query.",
+            Documentation.SampleValues = {
+                "user@contoso.com"
+            }
+        ]
+    ),
+    optional memoryLimit as (
+        type number meta [
+            Documentation.FieldCaption = "Memory Limit",
+            Documentation.FieldDescription = "Memory limit in KB for the query.",
+            Documentation.SampleValues = {
+                1024
+            }
+        ]
+    ),
+    optional queryTimeout as (
+        type number meta [
+            Documentation.FieldCaption = "Query Timeout",
+            Documentation.FieldDescription = "Query timeout in seconds.",
+            Documentation.SampleValues = {
+                600
+            }
+        ]
+    ),
+    optional resultSetRowCountLimit as (
+        type number meta [
+            Documentation.FieldCaption = "Result Set Row Count Limit",
+            Documentation.FieldDescription = "Maximum number of rows to return.",
+            Documentation.SampleValues = {
+                100000
+            }
+        ]
+    ),
+    optional roles as (
+        type list meta [
+            Documentation.FieldCaption = "Roles",
+            Documentation.FieldDescription = "Roles assigned to the user.",
+            Documentation.SampleValues = {
+                {"SalesRole"}
+            }
+        ]
+    ),
+    optional schemaOnly as (
+        type logical meta [
+            Documentation.FieldCaption = "Schema Only",
+            Documentation.FieldDescription = "Whether the query must return only the schema.",
+            Documentation.SampleValues = {
+                false
+            }
+        ]
+    )
+) as binary meta [
+    Documentation.Name = "PBIRESTAPIComm.ExecuteDaxQueries",
+    Documentation.LongDescription = "Executes Data Analysis Expressions (DAX) queries against the provided dataset. The dataset must reside in My workspace. The response is returned in Apache Arrow stream format. Query errors can also be returned in an HTTP 200 response as an Arrow error rowset, so check the schema metadata for IsError.",
+    Documentation.Examples = {
+        [
+            Code = "=PBIRESTAPIComm.ExecuteDaxQueries(""xxx-xxxx-abcd..."",""EVALUATE VALUES('Product'[Category])"",null,""en-US"",null,null,null,600,100000,null,false)",
+            Result = "Defined as https://learn.microsoft.com/en-us/rest/api/power-bi/datasets/execute-dax-queries"
+        ]
+    }
+];
+
+ExecuteDaxQueries = (
+    optional datasetId as text,
+    optional daxQuery as text,
+    optional applicationContext as text,
+    optional culture as text,
+    optional customData as text,
+    optional effectiveUsername as text,
+    optional memoryLimit as number,
+    optional queryTimeout as number,
+    optional resultSetRowCountLimit as number,
+    optional roles as list,
+    optional schemaOnly as logical
+) as binary =>
+    let
+        areRequiredArgumentsProvided = IsProvided(datasetId) and IsProvided(daxQuery),
+        result = if areRequiredArgumentsProvided = false then
+                    error Error.Record("InvalidArguments","Please provide datasetId and daxQuery arguments",null)
+                 else
+                    let
+                        params = [
+                            RelativePath = "v1.0/myorg/datasets/" & datasetId & "/executeDaxQueries",
+                            Headers = [
+                                #"Content-Type" = "application/json",
+                                Accept = "application/vnd.apache.arrow.stream"
+                            ],
+                            Content = BuildExecuteDaxQueriesContent(daxQuery, applicationContext, culture, customData, effectiveUsername, memoryLimit, queryTimeout, resultSetRowCountLimit, roles, schemaOnly)
+                        ],
+                        postResult = PostBinary(params)
+                    in
+                        postResult
+    in
+        result;
+/*** End ExecuteDaxQueries***/
+
+/*** ExecuteDaxQueriesInGroup ***/
+shared PBIRESTAPIComm.ExecuteDaxQueriesInGroup = Value.ReplaceType(
+    ExecuteDaxQueriesInGroup,
+    ExecuteDaxQueriesInGroupType
+);
+
+ExecuteDaxQueriesInGroupType = type function (
+    optional groupId as (
+        type text meta [
+            Documentation.FieldCaption = "Group ID",
+            Documentation.FieldDescription = "The workspace ID.",
+            Documentation.SampleValues = {
+                "xxx-xxxx-abcd..."
+            }
+        ]
+    ),
+    optional datasetId as (
+        type text meta [
+            Documentation.FieldCaption = "Dataset ID",
+            Documentation.FieldDescription = "The dataset ID.",
+            Documentation.SampleValues = {
+                "xxx-xxxx-efgh..."
+            }
+        ]
+    ),
+    optional daxQuery as (
+        type text meta [
+            Documentation.FieldCaption = "Query",
+            Documentation.FieldDescription = "Query text.",
+            Documentation.SampleValues = {
+                "EVALUATE VALUES('Product'[Category])"
+            }
+        ]
+    ),
+    optional applicationContext as (
+        type text meta [
+            Documentation.FieldCaption = "Application Context",
+            Documentation.FieldDescription = "JSON structure containing additional information about an operation.",
+            Documentation.SampleValues = {
+                "{""name"":""PowerQueryConnector""}"
+            }
+        ]
+    ),
+    optional culture as (
+        type text meta [
+            Documentation.FieldCaption = "Culture",
+            Documentation.FieldDescription = "Culture code that controls locale-specific query formatting.",
+            Documentation.SampleValues = {
+                "en-US"
+            }
+        ]
+    ),
+    optional customData as (
+        type text meta [
+            Documentation.FieldCaption = "Custom Data",
+            Documentation.FieldDescription = "Custom data for use in Dynamic RLS.",
+            Documentation.SampleValues = {
+                "North America"
+            }
+        ]
+    ),
+    optional effectiveUsername as (
+        type text meta [
+            Documentation.FieldCaption = "Effective Username",
+            Documentation.FieldDescription = "Effective username for the query.",
+            Documentation.SampleValues = {
+                "user@contoso.com"
+            }
+        ]
+    ),
+    optional memoryLimit as (
+        type number meta [
+            Documentation.FieldCaption = "Memory Limit",
+            Documentation.FieldDescription = "Memory limit in KB for the query.",
+            Documentation.SampleValues = {
+                1024
+            }
+        ]
+    ),
+    optional queryTimeout as (
+        type number meta [
+            Documentation.FieldCaption = "Query Timeout",
+            Documentation.FieldDescription = "Query timeout in seconds.",
+            Documentation.SampleValues = {
+                300
+            }
+        ]
+    ),
+    optional resultSetRowCountLimit as (
+        type number meta [
+            Documentation.FieldCaption = "Result Set Row Count Limit",
+            Documentation.FieldDescription = "Maximum number of rows to return.",
+            Documentation.SampleValues = {
+                100000
+            }
+        ]
+    ),
+    optional roles as (
+        type list meta [
+            Documentation.FieldCaption = "Roles",
+            Documentation.FieldDescription = "Roles assigned to the user.",
+            Documentation.SampleValues = {
+                {"SalesRole"}
+            }
+        ]
+    ),
+    optional schemaOnly as (
+        type logical meta [
+            Documentation.FieldCaption = "Schema Only",
+            Documentation.FieldDescription = "Whether the query must return only the schema.",
+            Documentation.SampleValues = {
+                false
+            }
+        ]
+    )
+) as binary meta [
+    Documentation.Name = "PBIRESTAPIComm.ExecuteDaxQueriesInGroup",
+    Documentation.LongDescription = "Executes Data Analysis Expressions (DAX) queries against the provided dataset. The dataset must reside in the specified workspace. The response is returned in Apache Arrow stream format. Query errors can also be returned in an HTTP 200 response as an Arrow error rowset, so check the schema metadata for IsError.",
+    Documentation.Examples = {
+        [
+            Code = "=PBIRESTAPIComm.ExecuteDaxQueriesInGroup(""xxx-xxxx-abcd..."",""xxx-xxxx-efgh..."",""EVALUATE VALUES('Product'[Category])"",null,""en-US"",null,null,null,600,100000,null,false)",
+            Result = "Defined as https://learn.microsoft.com/en-us/rest/api/power-bi/datasets/execute-dax-queries-in-group"
+        ]
+    }
+];
+
+ExecuteDaxQueriesInGroup = (
+    optional groupId as text,
+    optional datasetId as text,
+    optional daxQuery as text,
+    optional applicationContext as text,
+    optional culture as text,
+    optional customData as text,
+    optional effectiveUsername as text,
+    optional memoryLimit as number,
+    optional queryTimeout as number,
+    optional resultSetRowCountLimit as number,
+    optional roles as list,
+    optional schemaOnly as logical
+) as binary =>
+    let
+        areRequiredArgumentsProvided = IsProvided(groupId) and IsProvided(datasetId) and IsProvided(daxQuery),
+        result = if areRequiredArgumentsProvided = false then
+                    error Error.Record("InvalidArguments","Please provide groupId, datasetId and daxQuery arguments",null)
+                 else
+                    let
+                        params = [
+                            RelativePath = "v1.0/myorg/groups/" & groupId & "/datasets/" & datasetId & "/executeDaxQueries",
+                            Headers = [
+                                #"Content-Type" = "application/json",
+                                Accept = "application/vnd.apache.arrow.stream"
+                            ],
+                            Content = BuildExecuteDaxQueriesContent(daxQuery, applicationContext, culture, customData, effectiveUsername, memoryLimit, queryTimeout, resultSetRowCountLimit, roles, schemaOnly)
+                        ],
+                        postResult = PostBinary(params)
+                    in
+                        postResult
+    in
+        result;
+/*** End ExecuteDaxQueriesInGroup***/
+
 
 /*****************
     Reports
@@ -2784,6 +3098,16 @@ GetJSON = (optional relPath as text) =>
     in
         result;
 
+PostBinary = (optional params as record) =>
+    let
+        webSource = Web.Contents(
+            "https://api.powerbi.com",
+            params
+        ),
+        result = webSource
+    in
+        result;
+
 PostJSON = (optional params as record) =>
     let
         //Post
@@ -2796,6 +3120,45 @@ PostJSON = (optional params as record) =>
         result = Text.FromBinary(webSource)
     in
         result;
+
+BuildExecuteDaxQueriesContent = (
+    daxQuery as text,
+    optional applicationContext as text,
+    optional culture as text,
+    optional customData as text,
+    optional effectiveUsername as text,
+    optional memoryLimit as number,
+    optional queryTimeout as number,
+    optional resultSetRowCountLimit as number,
+    optional roles as list,
+    optional schemaOnly as logical
+) as binary =>
+    let
+        payload = [
+            query = daxQuery,
+            applicationContext = applicationContext,
+            culture = culture,
+            customData = customData,
+            effectiveUsername = effectiveUsername,
+            memoryLimit = memoryLimit,
+            queryTimeout = queryTimeout,
+            resultSetRowCountLimit = resultSetRowCountLimit,
+            roles = roles,
+            schemaOnly = schemaOnly
+        ],
+        fieldNames = List.Select(
+            Record.FieldNames(payload),
+            each IsProvided(Record.Field(payload, _))
+        ),
+        result = Json.FromValue(Record.SelectFields(payload, fieldNames))
+    in
+        result;
+
+IsProvided = (value as any) as logical =>
+    if Value.Is(value, type null) then false
+    else if Value.Is(value, type text) then value <> ""
+    else if Value.Is(value, type list) then List.Count(value) > 0
+    else true;
 
 // Data Source Kind description
 PBIRESTAPIComm = [

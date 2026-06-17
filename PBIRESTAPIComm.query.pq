@@ -79,6 +79,8 @@ shared MyExtension.UnitTest =
     GetDatasetRefreshScheduleInGroup = _GetFunction("GetDatasetRefreshScheduleInGroup"),
     ExecuteQuery = _GetFunction("ExecuteQuery"),
     ExecuteQueryInGroup = _GetFunction("ExecuteQueryInGroup"),
+    ExecuteDaxQueries = _GetFunction("ExecuteDaxQueries"),
+    ExecuteDaxQueriesInGroup = _GetFunction("ExecuteDaxQueriesInGroup"),
     /* Reports */
     GetPaginatedReportDatasourcesInGroup = _GetFunction("GetPaginatedReportDatasourcesInGroup"),
     GetReportPageInGroup = _GetFunction("GetReportPageInGroup"),
@@ -400,6 +402,23 @@ shared MyExtension.UnitTest =
              true,
              Value.Is(ExecuteQueryInGroup,Function.Type)
         ),
+       /* ExecuteDaxQueries */
+       Fact("ExecuteDaxQueries Should Be a Function",
+            true,
+            Value.Is(ExecuteDaxQueries,Function.Type)
+       ),
+       /* ExecuteDaxQueriesInGroup */
+       Fact("ExecuteDaxQueriesInGroup Should Be a Function",
+            true,
+            Value.Is(ExecuteDaxQueriesInGroup,Function.Type)
+       ),
+       Fact("ExecuteDaxQueries Functions Should Return Binary",
+            {type binary, type binary},
+            {
+                Type.FunctionReturn(Value.Type(ExecuteDaxQueries)),
+                Type.FunctionReturn(Value.Type(ExecuteDaxQueriesInGroup))
+            }
+       ),
      /*****************
      REPORTS
      *****************/    
