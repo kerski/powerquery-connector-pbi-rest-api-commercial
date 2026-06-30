@@ -24,6 +24,8 @@ shared MyExtension.UnitTest =
     ArrowFromBinary = PBIRESTAPIComm.ArrowFromBinary,
     ArrowReadUInt8 = PBIRESTAPIComm.ArrowReadUInt8,
     ArrowTestRaise = PBIRESTAPIComm.ArrowTestRaise,
+    ArrowValidateDictionaryBatch = PBIRESTAPIComm.ArrowValidateDictionaryBatch,
+    ArrowMergeDictionaryValues = PBIRESTAPIComm.ArrowMergeDictionaryValues,
 
     GetError = (operation as function) as nullable record =>
         let
@@ -64,6 +66,13 @@ shared MyExtension.UnitTest =
     MalformedArrowLikeBytes = Binary.Combine({ArrowMagicBytes, Text.ToBinary("broken")}),
     TruncatedArrowLikeBytes = Binary.FromText("ffffffff", BinaryEncoding.Hex),
     Lz4WithArrowTailBytes = Binary.Combine({Lz4MagicBytes, Text.ToBinary("bad"), ArrowMagicBytes}),
+    ValidDictionaryBatch = [Id = 7, Data = 101, IsDelta = true],
+    MissingIdDictionaryBatch = [Data = 101, IsDelta = true],
+    InvalidDataDictionaryBatch = [Id = 7, Data = null, IsDelta = false],
+    InvalidDeltaDictionaryBatch = [Id = 7, Data = 101, IsDelta = "nope"],
+    ExistingDictionaries = [#"7" = {"alpha", "beta"}],
+    ReplaceValues = {"gamma"},
+    DeltaValues = {"gamma", "delta"},
 
     ArrowHeaders = [#"Content-Type" = "application/vnd.apache.arrow.stream"],
     ArrowHeadersWithCharset = [#"Content-Type" = "application/vnd.apache.arrow.file; charset=utf-8"],
@@ -80,6 +89,8 @@ shared MyExtension.UnitTest =
         Fact("ArrowBinaryExSlice Should Be a Function", true, Value.Is(ArrowBinaryExSlice, Function.Type)),
         Fact("ArrowBinaryExLength Should Be a Function", true, Value.Is(ArrowBinaryExLength, Function.Type)),
         Fact("ArrowFromBinary Should Be a Function", true, Value.Is(ArrowFromBinary, Function.Type)),
+        Fact("ArrowValidateDictionaryBatch Should Be a Function", true, Value.Is(ArrowValidateDictionaryBatch, Function.Type)),
+        Fact("ArrowMergeDictionaryValues Should Be a Function", true, Value.Is(ArrowMergeDictionaryValues, Function.Type)),
 
         Fact(
             "ArrowDetectionGetContentType Should Normalize Header Value",
@@ -245,6 +256,52 @@ shared MyExtension.UnitTest =
             "ArrowFromBinary Should Reject Invalid Framing Before RecordBatch Parse",
             true,
             () => ErrorDetailFieldEquals(() => ArrowFromBinary(NonArrowBytes), "Stage", "Framing")
+        ),
+
+        Fact(
+            "DictionaryBatch Validation Should Preserve Id",
+            7,
+            () => ArrowValidateDictionaryBatch(ValidDictionaryBatch)[Id]
+        ),
+        Fact(
+            "DictionaryBatch Validation Should Preserve Data Pointer",
+            101,
+            () => ArrowValidateDictionaryBatch(ValidDictionaryBatch)[Data]
+        ),
+        Fact(
+            "DictionaryBatch Validation Should Preserve IsDelta Flag",
+            true,
+            () => ArrowValidateDictionaryBatch(ValidDictionaryBatch)[IsDelta]
+        ),
+        Fact(
+            "DictionaryBatch Validation Should Fail For Missing Id",
+            true,
+            () => ErrorMessageContains(() => ArrowValidateDictionaryBatch(MissingIdDictionaryBatch), "Id is missing or invalid")
+        ),
+        Fact(
+            "DictionaryBatch Validation Should Fail For Invalid Data Pointer",
+            true,
+            () => ErrorMessageContains(() => ArrowValidateDictionaryBatch(InvalidDataDictionaryBatch), "Data pointer is missing or invalid")
+        ),
+        Fact(
+            "DictionaryBatch Validation Should Fail For Invalid IsDelta Flag",
+            true,
+            () => ErrorMessageContains(() => ArrowValidateDictionaryBatch(InvalidDeltaDictionaryBatch), "IsDelta flag is missing or invalid")
+        ),
+        Fact(
+            "Dictionary Merge Should Replace Existing Values When IsDelta Is False",
+            "gamma",
+            () => Text.Combine(Record.Field(ArrowMergeDictionaryValues(ExistingDictionaries, 7, false, ReplaceValues), "7"), "|")
+        ),
+        Fact(
+            "Dictionary Merge Should Append Values When IsDelta Is True",
+            "alpha|beta|gamma|delta",
+            () => Text.Combine(Record.Field(ArrowMergeDictionaryValues(ExistingDictionaries, 7, true, DeltaValues), "7"), "|")
+        ),
+        Fact(
+            "Dictionary Merge Should Create New Dictionary For Delta Without Previous Values",
+            "seed",
+            () => Text.Combine(Record.Field(ArrowMergeDictionaryValues([], 13, true, {"seed"}), "13"), "|")
         )
     },
 

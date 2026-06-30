@@ -1,2 +1,13 @@
 *.test
 CI/Scripts/variables.test.json
+
+# Python virtual environment used only for author-time fixture generation
+# (see requirements.txt). Never required to build the .mez or run M tests.
+.venv/
+__pycache__/
+*.pyc
+artifacts/*
+
+# Ad-hoc diagnostic captures from local PQTest runs (not reproducible build outputs)
+proof-output.txt
+datedim-parity-proof.txt

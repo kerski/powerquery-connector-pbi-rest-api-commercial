@@ -74,7 +74,7 @@ jobs:
       - name: Run focused test file
         shell: pwsh
         run: |
-          ./CI/Scripts/Run-PQTests.ps1 -Compile $true -TestFileName $env:TEST_FILE
+          ./CI/Scripts/Run-PQTests.ps1 -Compile $true -AuthenticationKind OAuth2 -TestFileName $env:TEST_FILE
 
   full-suite:
     name: Full split suite
@@ -118,4 +118,4 @@ jobs:
       - name: Run full split suite
         shell: pwsh
         run: |
-          ./CI/Scripts/Run-PQTests.ps1 -Compile $false
+          ./CI/Scripts/Run-PQTests.ps1 -Compile $false -AuthenticationKind OAuth2

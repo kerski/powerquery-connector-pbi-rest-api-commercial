@@ -46,6 +46,7 @@ Required coverage:
 - Arrow helper unit and error-path tests for detection and binary helpers.
 - Dataset parity scenarios for representative data-type matrix and edge payloads.
 - Focused parity gate test file (`PBIRESTAPIComm.tests.datasets.parity.query.pq`) must remain runnable in isolation.
+- TOPN parity tests covering dictionary-encoded text/categorical columns (validated for DateDim, MarvelFact, AlignmentDim, EyeDim).
 
 Execution rules to reduce token usage and runtime:
 - Default development loop uses targeted files with `-TestFileName`.
@@ -99,6 +100,9 @@ Required documentation:
 
 ## Future Work & Backlog
 
+- Add unit tests for dictionary batch message parsing (isolated from RecordBatch integration).
+- Add error-path tests for malformed dictionary metadata and invalid dictionary IDs.
+- Document which Arrow features are supported vs. unsupported in connector README.
 - Expand parity matrix for larger payloads and additional edge cases.
 - Add richer machine-readable test result artifacts for CI analytics.
 - Add optional scheduled full-suite reliability runs.

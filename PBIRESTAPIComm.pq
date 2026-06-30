@@ -109,6 +109,8 @@ shared PBIRESTAPIComm.ArrowBinaryExLength = (binary as binary) as number => Bina
 shared PBIRESTAPIComm.ArrowFromBinary = ArrowFromBinary;
 shared PBIRESTAPIComm.ArrowReadUInt8 = ArrowReadUInt8;
 shared PBIRESTAPIComm.ArrowTestRaise = ArrowError;
+shared PBIRESTAPIComm.ArrowValidateDictionaryBatch = ArrowValidateDictionaryBatch;
+shared PBIRESTAPIComm.ArrowMergeDictionaryValues = ArrowMergeDictionaryValues;
 shared PBIRESTAPIComm.ExecuteDaxJsonToTable = ExecuteDaxJsonToTable;
 shared PBIRESTAPIComm.ExecuteDaxParseArrowResponse = ExecuteDaxParseArrowResponse;
 shared PBIRESTAPIComm.ExecuteDaxParseJsonResponse = ExecuteDaxParseJsonResponse;
@@ -3690,6 +3692,36 @@ ArrowDictionarySet = (dictionaries as record, dictionaryId as number, values as 
             then Record.AddField(Record.RemoveFields(dictionaries, {key}), key, values)
             else Record.AddField(dictionaries, key, values);
 
+ArrowValidateDictionaryBatch = (dictionaryBatch as any) as record =>
+    let
+        _recordCheck = if Value.Is(dictionaryBatch, type record)
+            then true
+            else ArrowError("DictionaryBatch payload must be a record", "Arrow.Stream", "DictionaryBatchValidation", [ActualType = Value.Type(dictionaryBatch)]),
+        _idCheck = if Record.HasFields(dictionaryBatch, "Id") and Value.Is(dictionaryBatch[Id], Number.Type)
+            then true
+            else ArrowError("DictionaryBatch Id is missing or invalid", "Arrow.Stream", "DictionaryBatchValidation", [DictionaryBatch = dictionaryBatch]),
+        _dataCheck = if Record.HasFields(dictionaryBatch, "Data") and Value.Is(dictionaryBatch[Data], Number.Type)
+            then true
+            else ArrowError("DictionaryBatch Data pointer is missing or invalid", "Arrow.Stream", "DictionaryBatchValidation", [DictionaryBatch = dictionaryBatch]),
+        _deltaCheck = if Record.HasFields(dictionaryBatch, "IsDelta") and Value.Is(dictionaryBatch[IsDelta], Logical.Type)
+            then true
+            else ArrowError("DictionaryBatch IsDelta flag is missing or invalid", "Arrow.Stream", "DictionaryBatchValidation", [DictionaryBatch = dictionaryBatch])
+    in
+        [
+            Id = Number.From(dictionaryBatch[Id]),
+            Data = Number.From(dictionaryBatch[Data]),
+            IsDelta = dictionaryBatch[IsDelta]
+        ];
+
+ArrowMergeDictionaryValues = (dictionaries as record, dictionaryId as number, isDelta as logical, dictionaryValues as list) as record =>
+    let
+        previousValues = if isDelta and Record.HasFields(dictionaries, ArrowDictionaryKey(dictionaryId))
+            then ArrowDictionaryGet(dictionaries, dictionaryId)
+            else {},
+        mergedValues = if isDelta then previousValues & dictionaryValues else dictionaryValues
+    in
+        ArrowDictionarySet(dictionaries, dictionaryId, mergedValues);
+
 ArrowFindDictionaryField = (schema as list, dictionaryId as number) as record =>
     let
         matches = List.Select(schema, each Record.HasFields(_, "Dictionary") and _[Dictionary] <> null and _[Dictionary][Id] = dictionaryId)
@@ -4026,10 +4058,85 @@ ArrowParseDictionaryBatch = (metadata as binary, dictionaryBatchObj as number) a
             IsDelta = ArrowFBReadScalarBool(metadata, dictionaryBatchObj, 2, false)
         ];
 
+ArrowTryMaterializeDictionaryBatch = (entry as record, schema as list, dictionaries as record) as record =>
+    let
+        parseTry = try
+            let
+                dictionaryBatchRaw = ArrowParseDictionaryBatch(entry[Metadata], entry[HeaderObject]),
+                dictionaryBatch = ArrowValidateDictionaryBatch(dictionaryBatchRaw),
+                dictionaryField = ArrowFindDictionaryField(schema, dictionaryBatch[Id]),
+                dictionaryValueField = Record.Combine({dictionaryField, [Dictionary = null]}),
+                dictionaryRecordBatch = ArrowParseRecordBatch(entry[Metadata], dictionaryBatch[Data]),
+                dictionaryTableTry = try ArrowRecordBatchToTable({dictionaryValueField}, dictionaryRecordBatch, entry[Body], dictionaries),
+                dictionaryTable =
+                    if dictionaryTableTry[HasError] and entry[BodyStart] <> entry[BodyStartUnaligned]
+                        then
+                            let
+                                fallbackTry = try ArrowRecordBatchToTable({dictionaryValueField}, dictionaryRecordBatch, entry[BodyUnaligned], dictionaries)
+                            in
+                                if fallbackTry[HasError] then error dictionaryTableTry[Error] else fallbackTry[Value]
+                        else if dictionaryTableTry[HasError]
+                            then error dictionaryTableTry[Error]
+                            else dictionaryTableTry[Value],
+                dictionaryValuesRaw = if Table.RowCount(dictionaryTable) = 0 then {} else Table.Column(dictionaryTable, dictionaryValueField[Name]),
+                dictionaryValues = List.Buffer(dictionaryValuesRaw)
+            in
+                ArrowMergeDictionaryValues(dictionaries, dictionaryBatch[Id], dictionaryBatch[IsDelta], dictionaryValues)
+    in
+        if parseTry[HasError]
+            then
+                [
+                    Succeeded = false,
+                    Dictionaries = dictionaries,
+                    ErrorReason = try parseTry[Error][Reason] otherwise null,
+                    ErrorMessage = try parseTry[Error][Message] otherwise "",
+                    ErrorDetail = try Text.FromBinary(Json.FromValue(parseTry[Error][Detail]), TextEncoding.Utf8) otherwise ""
+                ]
+            else
+                [
+                    Succeeded = true,
+                    Dictionaries = parseTry[Value],
+                    ErrorReason = null,
+                    ErrorMessage = null,
+                    ErrorDetail = null
+                ];
+
+ArrowResolvePendingDictionaryBatches = (schema as list, pending as list, dictionaries as record) as record =>
+    let
+        initial = [Pending = pending, Dictionaries = dictionaries, MadeProgress = true],
+        final = List.Last(
+            List.Generate(
+                () => initial,
+                each [MadeProgress] and List.Count([Pending]) > 0,
+                each
+                    let
+                        pass = List.Accumulate(
+                            [Pending],
+                            [Pending = {}, Dictionaries = [Dictionaries], MadeProgress = false],
+                            (state, entry) =>
+                                let
+                                    attempt = ArrowTryMaterializeDictionaryBatch(entry, schema, state[Dictionaries]),
+                                    updatedEntry =
+                                        if attempt[Succeeded]
+                                            then entry
+                                            else Record.Combine({entry, [LastErrorReason = attempt[ErrorReason], LastErrorMessage = attempt[ErrorMessage], LastErrorDetail = attempt[ErrorDetail]]})
+                                in
+                                    if attempt[Succeeded]
+                                        then [Pending = state[Pending], Dictionaries = attempt[Dictionaries], MadeProgress = true or state[MadeProgress]]
+                                        else [Pending = state[Pending] & {updatedEntry}, Dictionaries = state[Dictionaries], MadeProgress = state[MadeProgress]]
+                        )
+                    in
+                        [Pending = pass[Pending], Dictionaries = pass[Dictionaries], MadeProgress = pass[MadeProgress]],
+                each _
+            )
+        )
+    in
+        [Pending = final[Pending], Dictionaries = final[Dictionaries]];
+
 ArrowParseStream = (payload as binary) as table =>
     let
         length = Binary.Length(payload),
-        initial = [Offset = 0, Schema = null, Dictionaries = [], Tables = {}],
+        initial = [Offset = 0, Schema = null, Dictionaries = [], PendingDictionaryBatches = {}, Tables = {}],
         final = List.Last(
             List.Generate(
                 () => initial,
@@ -4092,55 +4199,49 @@ ArrowParseStream = (payload as binary) as table =>
                                         )
                                         else schemaTry[Value]
                             else [Schema],
-                        nextDictionaries = if parsed[HeaderType] = 2
+                        pendingWithCurrent = if parsed[HeaderType] = 2
                             then
                                 let
-                                    parseTry = try
-                                        let
-                                            _schemaCheck = if nextSchema = null then ArrowError("DictionaryBatch arrived before Schema", "Arrow.Stream", "MessageOrder") else true,
-                                            dictionaryBatch = ArrowParseDictionaryBatch(metadata, parsed[Header]),
-                                            dictionaryField = ArrowFindDictionaryField(nextSchema, dictionaryBatch[Id]),
-                                            dictionaryValueField = Record.Combine({dictionaryField, [Dictionary = null]}),
-                                            dictionaryRecordBatch = ArrowParseRecordBatch(metadata, dictionaryBatch[Data]),
-                                            dictionaryTableTry = try ArrowRecordBatchToTable({dictionaryValueField}, dictionaryRecordBatch, body, [ ]),
-                                            dictionaryTable =
-                                                if dictionaryTableTry[HasError] and bodyStart <> bodyStartUnaligned
-                                                    then
-                                                        let
-                                                            fallbackTry = try ArrowRecordBatchToTable({dictionaryValueField}, dictionaryRecordBatch, bodyUnaligned, [ ])
-                                                        in
-                                                            if fallbackTry[HasError] then error dictionaryTableTry[Error] else fallbackTry[Value]
-                                                    else if dictionaryTableTry[HasError]
-                                                        then error dictionaryTableTry[Error]
-                                                        else dictionaryTableTry[Value],
-                                            dictionaryValuesRaw = if Table.RowCount(dictionaryTable) = 0 then {} else Table.Column(dictionaryTable, dictionaryValueField[Name]),
-                                            dictionaryValues = List.Buffer(dictionaryValuesRaw),
-                                            previousValues = if dictionaryBatch[IsDelta] and Record.HasFields([Dictionaries], ArrowDictionaryKey(dictionaryBatch[Id]))
-                                                then ArrowDictionaryGet([Dictionaries], dictionaryBatch[Id])
-                                                else {},
-                                            mergedValues = if dictionaryBatch[IsDelta] then previousValues & dictionaryValues else dictionaryValues
-                                        in
-                                            ArrowDictionarySet([Dictionaries], dictionaryBatch[Id], mergedValues)
+                                    _schemaCheck = if nextSchema = null then ArrowError("DictionaryBatch arrived before Schema", "Arrow.Stream", "MessageOrder") else true,
+                                    dictionaryEntry = [
+                                        Offset = offset,
+                                        MetadataLength = metadataLength,
+                                        HeaderObject = parsed[Header],
+                                        Metadata = metadata,
+                                        Body = body,
+                                        BodyUnaligned = bodyUnaligned,
+                                        BodyStart = bodyStart,
+                                        BodyStartUnaligned = bodyStartUnaligned
+                                    ]
                                 in
-                                    if parseTry[HasError]
-                                        then ArrowError(
-                                            "Dictionary batch parsing failed",
-                                            "Arrow.Stream",
-                                            "DictionaryBatch",
-                                            [
-                                                Offset = offset,
-                                                MetadataLength = metadataLength,
-                                                HeaderObject = parsed[Header],
-                                                ErrorReason = try parseTry[Error][Reason] otherwise null,
-                                                ErrorMessage = try parseTry[Error][Message] otherwise "",
-                                                ErrorDetail = try Text.FromBinary(Json.FromValue(parseTry[Error][Detail]), TextEncoding.Utf8) otherwise ""
-                                            ]
-                                        )
-                                        else parseTry[Value]
-                            else [Dictionaries],
+                                    [PendingDictionaryBatches] & {dictionaryEntry}
+                            else [PendingDictionaryBatches],
+                        resolvedDictionaries = if nextSchema = null
+                            then [Pending = pendingWithCurrent, Dictionaries = [Dictionaries]]
+                            else ArrowResolvePendingDictionaryBatches(nextSchema, pendingWithCurrent, [Dictionaries]),
+                        nextDictionaries = resolvedDictionaries[Dictionaries],
+                        nextPendingDictionaryBatches = resolvedDictionaries[Pending],
                         nextTables = if parsed[HeaderType] = 3
                             then
                                 let
+                                    _pendingDictionaryCheck = if List.Count(nextPendingDictionaryBatches) > 0
+                                        then
+                                            let
+                                                firstPending = nextPendingDictionaryBatches{0}
+                                            in
+                                                ArrowError(
+                                                    "Unresolved dictionary batches remain before RecordBatch",
+                                                    "Arrow.Stream",
+                                                    "DictionaryBatchResolution",
+                                                    [
+                                                        PendingCount = List.Count(nextPendingDictionaryBatches),
+                                                        FirstPendingOffset = try firstPending[Offset] otherwise null,
+                                                        FirstPendingErrorReason = try firstPending[LastErrorReason] otherwise null,
+                                                        FirstPendingErrorMessage = try firstPending[LastErrorMessage] otherwise "",
+                                                        FirstPendingErrorDetail = try firstPending[LastErrorDetail] otherwise ""
+                                                    ]
+                                                )
+                                        else true,
                                     _schemaCheck = if nextSchema = null then ArrowError("RecordBatch arrived before Schema", "Arrow.Stream", "MessageOrder") else true,
                                     rbTry = try ArrowParseRecordBatch(metadata, parsed[Header]),
                                     rbRaw = if rbTry[HasError]
@@ -4233,7 +4334,7 @@ ArrowParseStream = (payload as binary) as table =>
                                     [Tables] & {t}
                             else [Tables]
                     in
-                        [Offset = nextOffset, Schema = nextSchema, Dictionaries = nextDictionaries, Tables = nextTables],
+                        [Offset = nextOffset, Schema = nextSchema, Dictionaries = nextDictionaries, PendingDictionaryBatches = nextPendingDictionaryBatches, Tables = nextTables],
                 each _
             )
         ),

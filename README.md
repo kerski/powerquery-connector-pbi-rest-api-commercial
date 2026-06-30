@@ -10,6 +10,7 @@ Each function returns a JSON body and not a table of data.  This decision was ma
     1. [Desktop](#desktop)
     1. [Using Functions](#using-functions)
     1. [Functions Implemented](#functions-implemented)
+    1. [Arrow IPC Support (ExecuteDaxQueries)](#arrow-ipc-support-executedaxqueries)
     1. [On-Premises Gateway](#on-premises-gateway)
 1. [Building Connector](#building-connector)
     1. [Testing Connector](#testing-connector)
@@ -132,6 +133,36 @@ Not all functions from the Power BI REST API have been implemented.  Here are th
 | GetDatasetRefreshScheduleInGroup|      Returns the refresh schedule for the specified dataset from the specified workspace.  | [Datasets - Get Refresh Schedule In Group](https://learn.microsoft.com/en-us/rest/api/power-bi/datasets/get-refresh-schedule-in-group) |
 |GetDatasetSyncStatusInGroup |      Returns the sync status information of the read-only replica and read/write dataset. (<b>Preview</b>: Power BI Dataset Scale-Out)  | [Datasets - Get Dataset Sync Status In Group ](https://learn.microsoft.com/en-us/power-bi/enterprise/service-premium-scale-out#enable-scale-out-for-your-workspace) |
 
+### Arrow IPC Support (ExecuteDaxQueries)
+
+This connector attempts Arrow IPC detection/parsing for `ExecuteDaxQueries` and `ExecuteDaxQueriesInGroup` responses and returns native Power Query tables.
+
+Supported and validated today:
+
+- Arrow response detection by content type and/or Arrow magic bytes.
+- DAX JSON response parsing for non-Arrow payloads from `ExecuteDaxQueries*` endpoints.
+- Dictionary-encoded columns, including recursive dictionary dependencies across dictionary batches.
+- Dictionary delta and replacement semantics in parser logic.
+- Deterministic parity validation against `ExecuteQuery*` for representative fixtures including:
+    - numbers
+    - booleans
+    - text
+    - date/datetime shapes
+    - blank/null values
+- Endpoint behavior contract: no fallback from `ExecuteDaxQueries*` to `ExecuteQuery*`.
+
+Current limitations and explicit non-support:
+
+- Compressed Arrow record batches are not supported (payload fails with explicit compression diagnostics).
+- Primitive Arrow kinds outside implemented decoding paths fail fast with explicit `Unsupported primitive Arrow type` errors.
+- Unsupported or malformed dictionary metadata fails fast with actionable diagnostics.
+- Arrow parsing support is scoped to connector-tested scenarios; unvalidated Arrow feature families (for example, uncommon extension/layout combinations) are not guaranteed.
+
+Target Arrow format baseline:
+
+- The parser is implemented against the current connector's Flatbuffers/IPC interpretation used by Power BI `ExecuteDaxQueries*` responses.
+- Compatibility is validated through the project's targeted parity tests and Arrow reliability gate rather than a broad claim of full Apache Arrow specification coverage.
+
 ### GoalValues (Preview)
 | End Point                      | Description  | MSDN Documentation |
 |:-----------------------------|:-------------|:------------------|
@@ -246,6 +277,22 @@ In order to test the custom data connector, please follow these instructions:
     ```powershell
     .\\CI\\Scripts\\Run-PQTests.ps1 -Compile $False -TestFileName PBIRESTAPIComm.tests.datasets.query.pq
     ```
+
+    To repeatedly validate DateDim Arrow parsing (including in-group path) and catch intermittent failures:
+
+    ```powershell
+    .\\CI\\Scripts\\Run-DateDimArrowSoak.ps1 -Iterations 5
+    ```
+
+    The soak script writes per-iteration logs to `artifacts/arrow-soak/` and fails immediately on the first failed iteration.
+
+    To enforce the full Arrow parsing reliability gate in one command:
+
+    ```powershell
+    .\\CI\\Scripts\\Run-ArrowParsingGate.ps1 -SoakIterations 5
+    ```
+
+    The gate runs parity, connector proof, arrow helper tests, and soak validation, then writes a summary to `artifacts/arrow-gate/`.
 
 ![Evaluate](./documentation/images/evaluate-test-file.png)
 
