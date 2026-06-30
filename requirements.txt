@@ -1,0 +1,15 @@
+# Author-time-only Python dependencies.
+#
+# These packages are NEVER bundled into the .mez connector and are NEVER
+# required to run the M-based test suite. They are used solely by
+# CI/Scripts/Generate-ArrowFixtures.py to (re)generate the deterministic
+# Arrow IPC byte fixtures committed under tests/fixtures/. Once generated,
+# the M-based parser tests in PBIRESTAPIComm.tests.arrow.*.query.pq parse
+# the committed bytes via Binary.FromText(..., BinaryEncoding.Hex).
+#
+# Setup (one-time per developer machine):
+#   python -m venv .venv
+#   .\.venv\Scripts\python.exe -m pip install -r requirements.txt
+#
+# Pinned to the version validated for fixture generation on 2026-06-30.
+pyarrow==24.0.0

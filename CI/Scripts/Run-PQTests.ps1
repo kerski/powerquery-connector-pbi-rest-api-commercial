@@ -27,7 +27,9 @@ Author: John Kerski
 #>
 param(
     [Boolean]$Compile = $True,
-    [string[]]$TestFileName
+    [string[]]$TestFileName,
+    [ValidateSet("OAuth2", "Aad")]
+    [string]$AuthenticationKind = "OAuth2"
 )
 
 function Get-TextBetweenMarkers {
@@ -193,6 +195,7 @@ $RelQueryCredFilePath = ".\\PBIRESTAPICommCredTemplate.query.pq"
 $RelConnectorSourcePath = ".\\PBIRESTAPIComm.pq"
 $RelQueryFilePaths = @(
     ".\\PBIRESTAPIComm.tests.arrow.helpers.query.pq",
+    ".\\PBIRESTAPIComm.tests.arrow.staticfixture.query.pq",
     ".\\PBIRESTAPIComm.tests.apps.query.pq",
     ".\\PBIRESTAPIComm.tests.dashboards.query.pq",
     ".\\PBIRESTAPIComm.tests.dataflows.query.pq",
@@ -202,7 +205,10 @@ $RelQueryFilePaths = @(
     ".\\PBIRESTAPIComm.tests.reports.query.pq",
     ".\\PBIRESTAPIComm.tests.groups.query.pq",
     ".\\PBIRESTAPIComm.tests.pipelines.query.pq",
-    ".\\PBIRESTAPIComm.tests.scorecards.query.pq"
+    ".\\PBIRESTAPIComm.tests.scorecards.query.pq",
+    ".\\PBIRESTAPIComm.tests.proof.query.pq",
+    ".\\PBIRESTAPIComm.tests.showdata.query.pq",
+    ".\\PBIRESTAPIComm.tests.connector.proof.query.pq"
 )
 
 $ConnectorSourcePath = (Resolve-Path -Path $RelConnectorSourcePath).Path
@@ -268,10 +274,9 @@ if($Compile -eq $True){
 }
   
 # Setup credentials
-# PQTest generates OAuth2 by default, but our connector uses AAD authentication.
-# We need to manually construct an AAD credential template instead.
+# Keep auth kind configurable for local and CI parity. Default matches PQTest-supported OAuth2.
 $CredentialJson = @{
-    AuthenticationKind = "Aad"
+    AuthenticationKind = $AuthenticationKind
     AuthenticationProperties = @{
         AccessToken = $AccessToken
     }
@@ -279,8 +284,12 @@ $CredentialJson = @{
     Permissions = @()
 } | ConvertTo-Json -Compress
 
-Write-Host "Using AAD authentication credential:"
-Write-Host $CredentialJson
+Write-Host "Using $AuthenticationKind authentication credential:"
+# Redact the OAuth bearer token in console/log output. The raw token is still
+# piped to PQTest via $X below — only the diagnostic echo is redacted so that
+# Tee-Object'd run logs (and AI-agent transcripts) do not capture secrets.
+$RedactedCredentialJson = $CredentialJson -replace '("AccessToken"\s*:\s*")[^"]+(")', '$1<REDACTED>$2'
+Write-Host $RedactedCredentialJson
 
 $X = $CredentialJson
 
@@ -320,6 +329,7 @@ foreach($QueryFilePath in $QueryFilePaths){
     $TestResults = $Result | ConvertFrom-Json
     $Status = "Failed"
     $ErrorMessage = "Unknown error"
+    $ErrorDetail = ""
 
     if($TestResults -and ($TestResults.Status -like 'Passed')){
         $Status = "Passed"
@@ -329,19 +339,27 @@ foreach($QueryFilePath in $QueryFilePaths){
     else {
         if($TestResults -and $TestResults.Error){
             $ErrorMessage = $TestResults.Error.Message
+            if($TestResults.Error.PSObject.Properties.Name -contains "Detail"){
+                $ErrorDetail = try { $TestResults.Error.Detail | ConvertTo-Json -Depth 15 -Compress } catch { [string]$TestResults.Error.Detail }
+            }
         }
         elseif(!$TestResults){
             $ErrorMessage = "No Expected Test Results"
         }
 
-        Write-Error "[FAIL] $QueryFilePath - $ErrorMessage"
+        if([string]::IsNullOrWhiteSpace($ErrorDetail)){
+            Write-Error "[FAIL] $QueryFilePath - $ErrorMessage"
+        }
+        else {
+            Write-Error "[FAIL] $QueryFilePath - $ErrorMessage | Detail: $ErrorDetail"
+        }
     }
 
     $TestRunSummary += [PSCustomObject]@{
         TestFile = Split-Path -Path $QueryFilePath -Leaf
         QueryFile = $QueryFilePath
         Status = $Status
-        Error = $ErrorMessage
+        Error = if([string]::IsNullOrWhiteSpace($ErrorDetail)) { $ErrorMessage } else { "$ErrorMessage | Detail: $ErrorDetail" }
     }
 }
 
