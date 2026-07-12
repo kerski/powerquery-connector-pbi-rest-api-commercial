@@ -366,13 +366,27 @@ else{
 
 # Now Run The Tests
 $TestRunSummary = @()
+$TestFileCount = $QueryFilePaths.Count
+$TestIndex = 0
 
 foreach($QueryFilePath in $QueryFilePaths){
+    $TestIndex++
+    $TestLeaf = Split-Path -Path $QueryFilePath -Leaf
+    # Emit a heartbeat before each test so long-running tests do not look like a
+    # hang. A single test file can take 60-120 seconds (particularly the Arrow
+    # parsing tests), and without this line the CI log shows a silent gap that
+    # is easily mistaken for a stuck process.
+    Write-Host "[RUN $TestIndex/$TestFileCount] $TestLeaf (starting at $((Get-Date).ToString('HH:mm:ss')))"
+    $TestStopwatch = [System.Diagnostics.Stopwatch]::StartNew()
+
     $Result = $null
     $Result = & $PQTestExe run-test --extension $ExtensionFilePath `
 				                --queryFile $QueryFilePath `
 				                --prettyPrint `
                                 -ecf $TestFilePath
+
+    $TestStopwatch.Stop()
+    $ElapsedSeconds = [Math]::Round($TestStopwatch.Elapsed.TotalSeconds, 1)
 
     $TestResults = $Result | ConvertFrom-Json
     $Status = "Failed"
@@ -382,7 +396,7 @@ foreach($QueryFilePath in $QueryFilePaths){
     if($TestResults -and ($TestResults.Status -like 'Passed')){
         $Status = "Passed"
         $ErrorMessage = ""
-        Write-Host "[PASS] $QueryFilePath"
+        Write-Host "[PASS $TestIndex/$TestFileCount] $TestLeaf ($ElapsedSeconds`s)"
     }
     else {
         if($TestResults -and $TestResults.Error){
@@ -396,24 +410,25 @@ foreach($QueryFilePath in $QueryFilePaths){
         }
 
         if([string]::IsNullOrWhiteSpace($ErrorDetail)){
-            Write-Error "[FAIL] $QueryFilePath - $ErrorMessage"
+            Write-Error "[FAIL $TestIndex/$TestFileCount] $TestLeaf ($ElapsedSeconds`s) - $ErrorMessage"
         }
         else {
-            Write-Error "[FAIL] $QueryFilePath - $ErrorMessage | Detail: $ErrorDetail"
+            Write-Error "[FAIL $TestIndex/$TestFileCount] $TestLeaf ($ElapsedSeconds`s) - $ErrorMessage | Detail: $ErrorDetail"
         }
     }
 
     $TestRunSummary += [PSCustomObject]@{
-        TestFile = Split-Path -Path $QueryFilePath -Leaf
+        TestFile = $TestLeaf
         QueryFile = $QueryFilePath
         Status = $Status
+        ElapsedSeconds = $ElapsedSeconds
         Error = if([string]::IsNullOrWhiteSpace($ErrorDetail)) { $ErrorMessage } else { "$ErrorMessage | Detail: $ErrorDetail" }
     }
 }
 
 Write-Host ""
 Write-Host "Test file execution summary:"
-$TestRunSummary | Select-Object TestFile, Status, Error | Format-Table -AutoSize
+$TestRunSummary | Select-Object TestFile, Status, ElapsedSeconds, Error | Format-Table -AutoSize
 
 $FailedTests = $TestRunSummary | Where-Object { $_.Status -ne 'Passed' }
 if($FailedTests.Count -gt 0){
