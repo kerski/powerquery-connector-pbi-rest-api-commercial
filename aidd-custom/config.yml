@@ -1,0 +1,17 @@
+# AIDD Custom Configuration
+# Customize the AIDD Framework behavior for this project.
+# Upstream AIDD framework: https://github.com/paralleldrive/aidd
+#
+# --- Upgrading AIDD ---
+# To pull the latest ai/ skills, commands, and scaffolds from the upstream
+# AIDD project, see UPGRADING-AIDD.md in the repository root.
+# Your project-specific overrides live in aidd-custom/ and survive upgrades.
+
+# Run e2e tests before committing (default: false)
+# Set to true to enforce e2e test runs locally before each commit.
+# When false, e2e tests are deferred to CI.
+e2eBeforeCommit: false
+
+# Agent used for prompt: manifest steps and npx aidd agent (default: claude)
+# Accepted values: claude | opencode | cursor | path/to/agent.yml
+# agent-config: claude

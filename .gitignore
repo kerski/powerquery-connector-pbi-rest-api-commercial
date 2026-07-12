@@ -1,0 +1,41 @@
+*.test
+CI/Scripts/variables.test.json
+
+# Python virtual environment used only for author-time fixture generation
+# (see requirements.txt). Never required to build the .mez or run M tests.
+.venv/
+__pycache__/
+*.pyc
+artifacts/*
+
+# Ad-hoc diagnostic captures from local PQTest runs (not reproducible build outputs)
+proof-output.txt
+datedim-parity-proof.txt
+
+# Ad-hoc test output/captures. Fixtures use .hex/.json/.arrow; .txt/.log in tests
+# are only ever transient run artifacts (logs, parity dumps) and never committed.
+tests/**/*.txt
+tests/**/*.log
+
+# Root-level ad-hoc scratch / probe files (never part of the build or committed tests)
+_tmp_*
+_probe_*.query.pq
+
+# One-off live Arrow captures (Capture-ArrowResponse.ps1 writes *-live.*). These are
+# transient byte-comparison captures; the committed regression fixture is the canonical one.
+tests/fixtures/*-live.arrow
+tests/fixtures/*-live.hex
+
+# Power BI Desktop (PBIP) project caches and per-user local settings. The .pbi folder
+# holds a binary model cache (cache.abf) and user/machine-specific security bindings
+# (localSettings.json securityBindingsSignature) that must never be committed.
+**/.pbi/
+
+# MSBuild intermediate outputs (never distributed)
+obj/
+
+# Duplicated/stale connector build artifacts. The canonical distributable mez
+# is committed at bin/AnyCPU/Debug/powerquery-connector-pbi-rest-api-commercial.mez;
+# these paths are only ever produced by doubled/misconfigured compile targets.
+bin/AnyCPU/Debug/bin/
+bin/AnyCPU/Debug/.mez

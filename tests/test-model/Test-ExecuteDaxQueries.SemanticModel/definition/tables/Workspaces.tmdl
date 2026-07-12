@@ -1,0 +1,46 @@
+table Workspaces
+	lineageTag: a8a1626e-fe39-493e-81b0-c6fafadca146
+
+	column 'Workspace ID'
+		dataType: string
+		lineageTag: 827c0fc9-f6a7-4001-a118-590abf4261af
+		summarizeBy: none
+		sourceColumn: Workspace ID
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Workspace Name'
+		dataType: string
+		lineageTag: 8ae46e63-1b58-4ca4-9d5b-5ef7c9aec19d
+		summarizeBy: none
+		sourceColumn: Workspace Name
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Capacity ID'
+		dataType: string
+		lineageTag: a9ce5dbf-186f-4eaa-9919-341f806b3b56
+		summarizeBy: none
+		sourceColumn: Capacity ID
+
+		annotation SummarizationSetBy = Automatic
+
+	partition Workspaces = m
+		mode: import
+		source =
+				let
+				    Source = GetGroups(null, null, null),
+				    #"Parsed JSON" = Json.Document(Source),
+				    value = #"Parsed JSON"[value],
+				    #"Converted to Table" = Table.FromList(value, Splitter.SplitByNothing(), null, null, ExtraValues.Error),
+				    #"Expanded Column1" = Table.ExpandRecordColumn(#"Converted to Table", "Column1", {"id", "name", "capacityId"}, {"id", "name", "capacityId"}),
+				    #"Filtered Rows" = Table.SelectRows(#"Expanded Column1", each ([name] = "Custom Connector Test" or [name] = "Custom Connector Test [Production]")),
+				    #"Renamed Columns" = Table.RenameColumns(#"Filtered Rows",{{"id", "Workspace ID"}, {"name", "Workspace Name"}, {"capacityId", "Capacity ID"}}),
+				    #"Changed Type" = Table.TransformColumnTypes(#"Renamed Columns",{{"Capacity ID", type text}, {"Workspace Name", type text}, {"Workspace ID", type text}})
+				in
+				    #"Changed Type"
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Table
+
