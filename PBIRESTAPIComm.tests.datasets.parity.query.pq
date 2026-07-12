@@ -102,14 +102,11 @@ shared MyExtension.UnitTest =
         ExecuteDaxQueries(DatasetTestID, query),
 
     GetExecuteQueryColumns = (rows as list) as list =>
-        let
-            ordered = List.Accumulate(
-                rows,
-                {},
-                (state, row) => List.Distinct(List.Combine({state, Record.FieldNames(row)}))
-            )
-        in
-            ordered,
+        // Union all field names across rows preserving first-seen order. This must
+        // NOT use List.Accumulate: on large live results (tens of thousands of
+        // rows) the accumulator recurses and overflows the evaluation stack.
+        // List.Combine + List.Distinct is iterative and keeps first occurrence.
+        List.Distinct(List.Combine(List.Transform(rows, each Record.FieldNames(_)))),
 
     CanonicalizeRecord = (row as record, columns as list) as list =>
         List.Transform(
@@ -258,7 +255,9 @@ shared MyExtension.UnitTest =
                             )
                     else true
         in
-            true,
+            // M is lazy: the guards above only run if referenced here. Force each so a
+            // parity mismatch actually raises (each guard is `true` or a thrown ParityError).
+            _columnCountCheck and _columnNameCheck and _rowCountCheck and _valueCheck,
 
     ErrorDetailFieldEquals = (operation as function, fieldName as text, expectedValue as any) as logical =>
         let

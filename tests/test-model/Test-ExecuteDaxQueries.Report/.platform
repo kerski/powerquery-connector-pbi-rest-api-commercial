@@ -1,0 +1,11 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "Report",
+    "displayName": "Test-ExecuteDaxQueries"
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "981047bc-661b-4ce6-9ee5-aead6b86c837"
+  }
+}

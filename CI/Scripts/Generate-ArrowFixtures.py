@@ -188,6 +188,124 @@ def fixture_boolean_column() -> dict[str, Any]:
     }
 
 
+def _utf8_dict_column(row_values: list[str], index_type: pa.DataType = pa.int32()):
+    """Build a dictionary-encoded utf8 column with a deterministic dictionary
+    (first-appearance order) and the requested index type. Returns
+    (dict_array, field_type, expected_row_values)."""
+    seen: list[str] = []
+    for v in row_values:
+        if v is not None and v not in seen:
+            seen.append(v)
+    index_map = {v: i for i, v in enumerate(seen)}
+    indices = pa.array(
+        [None if v is None else index_map[v] for v in row_values],
+        type=index_type,
+    )
+    dictionary = pa.array(seen, type=pa.utf8())
+    dict_array = pa.DictionaryArray.from_arrays(indices, dictionary)
+    field_type = pa.dictionary(index_type, pa.utf8())
+    return dict_array, field_type, list(row_values)
+
+
+def fixture_multi_dictionary_columns() -> dict[str, Any]:
+    """Reproduction of the live `TOPN(10, DateDim, ...)` failure: several
+    dictionary-encoded utf8 columns in ONE record batch. pyarrow emits one
+    DictionaryBatch message per column BEFORE the RecordBatch (schema,
+    dictionary, dictionary, dictionary, record batch) — the exact framing that
+    triggered the recursively-nested 'Dictionary batch parsing failed' error.
+    """
+    month = ["Jan", "Feb", "Mar", "Jan", "Feb", "Mar", "Jan", "Feb", "Mar", "Jan"]
+    day = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun", "Mon", "Tue", "Wed"]
+    quarter = ["Q1", "Q1", "Q1", "Q2", "Q2", "Q2", "Q3", "Q3", "Q3", "Q4"]
+    m_arr, m_type, m_rows = _utf8_dict_column(month)
+    d_arr, d_type, d_rows = _utf8_dict_column(day)
+    q_arr, q_type, q_rows = _utf8_dict_column(quarter)
+    schema = pa.schema([
+        pa.field("MonthName", m_type, nullable=False),
+        pa.field("DayName", d_type, nullable=False),
+        pa.field("Quarter", q_type, nullable=False),
+    ])
+    batch = pa.record_batch([m_arr, d_arr, q_arr], schema=schema)
+    return {
+        "name": "multi_dictionary_columns",
+        "description": "Three dictionary-encoded utf8 columns in one batch (3 DictionaryBatch messages before the RecordBatch). Reproduces the multi-dictionary TOPN(DateDim) failure.",
+        "hex": to_stream_bytes([batch]).hex(),
+        "expected": {
+            "columns": ["MonthName", "DayName", "Quarter"],
+            "rows": [list(r) for r in zip(m_rows, d_rows, q_rows)],
+        },
+    }
+
+
+def fixture_datedim_shaped() -> dict[str, Any]:
+    """Realistic wide DateDim-shaped batch mixing non-dictionary columns
+    (int64, bool) with multiple dictionary-encoded text columns. Validates that
+    dictionary and non-dictionary buffers are consumed in the correct order
+    across a wide schema."""
+    year = [2024, 2024, 2024, 2025, 2025, 2025, 2026, 2026, 2026, 2026]
+    month = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct"]
+    day = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun", "Mon", "Tue", "Wed"]
+    weekend = [False, False, False, False, True, True, False, False, False, True]
+    m_arr, m_type, m_rows = _utf8_dict_column(month)
+    d_arr, d_type, d_rows = _utf8_dict_column(day)
+    schema = pa.schema([
+        pa.field("Year", pa.int64(), nullable=False),
+        pa.field("MonthName", m_type, nullable=False),
+        pa.field("DayName", d_type, nullable=False),
+        pa.field("IsWeekend", pa.bool_(), nullable=False),
+    ])
+    batch = pa.record_batch(
+        [pa.array(year, type=pa.int64()), m_arr, d_arr, pa.array(weekend, type=pa.bool_())],
+        schema=schema,
+    )
+    return {
+        "name": "datedim_shaped",
+        "description": "Wide batch: int64 + two dictionary utf8 columns + bool, mixing dictionary and non-dictionary buffers.",
+        "hex": to_stream_bytes([batch]).hex(),
+        "expected": {
+            "columns": ["Year", "MonthName", "DayName", "IsWeekend"],
+            "rows": [list(r) for r in zip(year, m_rows, d_rows, weekend)],
+        },
+    }
+
+
+def fixture_dictionary_with_nulls() -> dict[str, Any]:
+    """Dictionary-encoded utf8 column with null index slots. Validates that the
+    validity bitmap is applied to dictionary indices (null vs a real value)."""
+    rows = ["red", None, "blue", "green", None, "red"]
+    arr, ftype, exp = _utf8_dict_column(rows)
+    schema = pa.schema([pa.field("Color", ftype, nullable=True)])
+    batch = pa.record_batch([arr], schema=schema)
+    return {
+        "name": "dictionary_with_nulls",
+        "description": "Dictionary-encoded utf8 column with null slots interleaved with values.",
+        "hex": to_stream_bytes([batch]).hex(),
+        "expected": {
+            "columns": ["Color"],
+            "rows": [[v] for v in exp],
+        },
+    }
+
+
+def fixture_dictionary_int16_indices() -> dict[str, Any]:
+    """Dictionary-encoded utf8 column whose index buffer is int16 (not the
+    int32 default). Validates index bit-width handling in the dictionary
+    decoder."""
+    rows = ["a", "b", "c", "a", "b", "c", "a"]
+    arr, ftype, exp = _utf8_dict_column(rows, index_type=pa.int16())
+    schema = pa.schema([pa.field("Letter", ftype, nullable=False)])
+    batch = pa.record_batch([arr], schema=schema)
+    return {
+        "name": "dictionary_int16_indices",
+        "description": "Dictionary-encoded utf8 column with int16 index buffer (non-default bit width).",
+        "hex": to_stream_bytes([batch]).hex(),
+        "expected": {
+            "columns": ["Letter"],
+            "rows": [[v] for v in exp],
+        },
+    }
+
+
 def main() -> None:
     fixtures = [
         fixture_simple_int64_string(),
@@ -196,6 +314,10 @@ def main() -> None:
         fixture_dictionary_encoded(),
         fixture_unicode_strings(),
         fixture_boolean_column(),
+        fixture_multi_dictionary_columns(),
+        fixture_datedim_shaped(),
+        fixture_dictionary_with_nulls(),
+        fixture_dictionary_int16_indices(),
     ]
     os.makedirs(FIXTURES_DIR, exist_ok=True)
     manifest_path = os.path.join(FIXTURES_DIR, "arrow_fixtures.json")

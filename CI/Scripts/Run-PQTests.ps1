@@ -196,6 +196,7 @@ $RelConnectorSourcePath = ".\\PBIRESTAPIComm.pq"
 $RelQueryFilePaths = @(
     ".\\PBIRESTAPIComm.tests.arrow.helpers.query.pq",
     ".\\PBIRESTAPIComm.tests.arrow.staticfixture.query.pq",
+    ".\\PBIRESTAPIComm.tests.arrow.compressed.datedim.query.pq",
     ".\\PBIRESTAPIComm.tests.apps.query.pq",
     ".\\PBIRESTAPIComm.tests.dashboards.query.pq",
     ".\\PBIRESTAPIComm.tests.dataflows.query.pq",
@@ -254,8 +255,13 @@ if($TestFileName -and $TestFileName.Count -gt 0){
     Write-Host "Running selected test files: $($RelQueryFilePaths -join ', ')"
 }
 
-# Get full path because PQTest expects that
-$ExtensionFilePath = (Resolve-Path -Path $RelExtFilePath).Path
+# Get full path because PQTest expects that.
+# Resolve the mez path WITHOUT requiring the file to already exist (a fresh
+# clone has no compiled output yet). Anchor to the repo root so the output
+# directory can never be doubled up (for example bin\AnyCPU\Debug\bin\...).
+$RepoRoot = (Resolve-Path -Path ".").Path
+$ExtensionFilePath = [System.IO.Path]::GetFullPath((Join-Path $RepoRoot ($RelExtFilePath -replace '^\.\\', '')))
+$ExtensionOutputDir = Split-Path -Path $ExtensionFilePath -Parent
 $QueryCredFilePath = (Resolve-Path -Path $RelQueryCredFilePath).Path
 $QueryFilePaths = @()
 foreach($RelQueryFilePath in $RelQueryFilePaths){
@@ -265,12 +271,54 @@ foreach($RelQueryFilePath in $RelQueryFilePaths){
 # Compile Check    
 if($Compile -eq $True){
 
-    # Setup target compile
-    $Target = $($ExtensionFilePath -replace ".mez", "")
+    # Remove any stale or duplicated build artifacts before compiling so a
+    # previous run can never leave behind a second .mez that PQTest might
+    # pick up. This is the root-cause guard for the duplicate/nested
+    # bin\AnyCPU\Debug\bin\... outputs and the bare ".mez" file.
+    if(Test-Path -LiteralPath $ExtensionOutputDir){
+        Get-ChildItem -Path $ExtensionOutputDir -Recurse -Filter "*.mez" -ErrorAction SilentlyContinue |
+            ForEach-Object { Remove-Item -LiteralPath $_.FullName -Force -ErrorAction SilentlyContinue }
+        # A nested output directory (bin\AnyCPU\Debug\bin) is always junk from a
+        # doubled path; remove it if present.
+        $NestedBin = Join-Path $ExtensionOutputDir "bin"
+        if(Test-Path -LiteralPath $NestedBin){
+            Remove-Item -LiteralPath $NestedBin -Recurse -Force -ErrorAction SilentlyContinue
+        }
+    }
+
+    # Setup target compile. Strip ONLY the trailing ".mez" extension. The old
+    # form used -replace ".mez" where "." is a regex wildcard, which could
+    # corrupt the target path; anchor to the end and escape the dot instead.
+    $Target = $ExtensionFilePath -replace '\.mez$', ''
     Write-Host "Compile Connector: $($Target)"
 
     # Run compile
     .\CI\PQTest\MakePQX.exe compile --target $Target
+
+    # Verify the compile produced EXACTLY one .mez at the expected location.
+    # Any other outcome means the build environment is misconfigured and must
+    # be fixed before tests run against a possibly stale connector.
+    $ProducedMez = @(Get-ChildItem -Path $ExtensionOutputDir -Recurse -Filter "*.mez" -ErrorAction SilentlyContinue)
+    if($ProducedMez.Count -ne 1){
+        Write-Error "Compile produced $($ProducedMez.Count) .mez file(s); expected exactly 1. Files: $(( $ProducedMez | ForEach-Object { $_.FullName }) -join '; ')"
+        return 0
+    }
+    if($ProducedMez[0].FullName -ne $ExtensionFilePath){
+        Write-Error "Compiled .mez is at an unexpected path: $($ProducedMez[0].FullName). Expected: $ExtensionFilePath"
+        return 0
+    }
+}
+
+# Guard the test phase too: refuse to run if the expected connector is missing
+# or if any stray .mez exists that could shadow it.
+if(!(Test-Path -LiteralPath $ExtensionFilePath)){
+    Write-Error "Connector not found: $ExtensionFilePath. Run with -Compile `$True to build it."
+    return 0
+}
+$AllMez = @(Get-ChildItem -Path $ExtensionOutputDir -Recurse -Filter "*.mez" -ErrorAction SilentlyContinue)
+if($AllMez.Count -gt 1){
+    Write-Error "Multiple .mez files found under $ExtensionOutputDir; remove stale builds. Files: $(( $AllMez | ForEach-Object { $_.FullName }) -join '; ')"
+    return 0
 }
   
 # Setup credentials

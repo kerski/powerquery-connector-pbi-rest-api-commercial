@@ -103,7 +103,7 @@ def render(manifest):
     body.append("        [Result = if isSuccess then \"Success\" else \"Failure\", Notes = _subject, Details = details];")
     body.append("")
     body.append("shared MyExtension.UnitTest =")
-    body.append("[")
+    body.append("let")
     body.append("    ArrowFromBinary = PBIRESTAPIComm.ArrowFromBinary,")
     body.append("")
     body.append("    CellsEqual = (a, b) as logical =>")
@@ -161,8 +161,23 @@ def render(manifest):
     body.append("    facts =")
     body.append("    {")
     body.append(",\n".join(facts + corruption_facts))
-    body.append("    }")
-    body.append("];")
+    body.append("    },")
+    body.append("")
+    # CI gate: any fact whose Result is not "Success" must fail the whole run.
+    # PQTest reports a shared member that merely evaluates as Passed, so a plain
+    # facts record would let a red fixture slip through. Raising a top-level error
+    # here forces PQTest to report Status=Failed with the failing subjects listed.
+    body.append("    failures = List.Select(facts, each _[Result] <> \"Success\"),")
+    body.append("    failureSummary = Text.Combine(List.Transform(failures, each _[Notes] & \" :: \" & _[Details]), \"; \"),")
+    body.append("    gated =")
+    body.append("        if List.Count(failures) > 0")
+    body.append("        then error Error.Record(")
+    body.append("            \"ArrowStaticFixtureFailure\",")
+    body.append("            Text.From(List.Count(failures)) & \" of \" & Text.From(List.Count(facts)) & \" Arrow static fixture fact(s) failed\",")
+    body.append("            failureSummary)")
+    body.append("        else facts")
+    body.append("in")
+    body.append("    gated;")
     body.append("")
     return "\n".join(body)
 

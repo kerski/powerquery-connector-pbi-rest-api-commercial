@@ -3173,6 +3173,215 @@ ArrowAlign8 = (offset as number) as number =>
     in
         if remainder = 0 then offset else offset + (8 - remainder);
 
+// ---- LZ4_FRAME decompression (Arrow BodyCompression codec 0) ----
+// Power BI's executeDaxQueries endpoint returns Arrow buffers compressed with the LZ4
+// frame format for non-trivial results. Each compressed buffer is a standalone LZ4 frame
+// (magic 0x184D2204) prefixed, at the Arrow level, by an 8-byte little-endian int64
+// giving the uncompressed length (-1 means the buffer is stored uncompressed). Pure M has
+// no LZ4 primitive, so we decode it here. The decoder is stack-safe and avoids O(n^2) list
+// growth: back-references are read from the produced output via Binary.Range, which has an
+// O(1) seek on a buffered binary (list-based List.Range seeks O(offset), which both blows
+// the stack and is quadratic on large buffers).
+
+// Decode a single LZ4 block (LZ77: token / literals / offset / match) to a binary. The
+// input block is a buffered binary; single bytes are read from a buffered list (O(1) index)
+// and literal spans / back-references are read as binary (O(1) Binary.Range seek).
+ArrowLz4DecompressBlock = (block as binary) as binary =>
+    let
+        n = Binary.Length(block),
+        blockList = List.Buffer(Binary.ToList(block)),
+        // Extended length starting at 15, consuming 0xFF continuation bytes. Iterative: it
+        // indexes a buffered list (no List.Range seek) and never recurses, so it is stack-safe
+        // and O(run length) even for very long literal/match runs.
+        readLenExt = (startPos as number, baseAcc as number) as record =>
+            let
+                scan = List.Buffer(List.Generate(
+                    () => [i = 0, prev = true],
+                    each [prev] and (startPos + [i] < n),
+                    each let b = blockList{startPos + [i]} in [i = [i] + 1, prev = (b = 255)],
+                    each blockList{startPos + [i]}
+                )),
+                num255 = List.Count(List.Select(scan, each _ = 255)),
+                termIdx = startPos + num255,
+                termByte = if termIdx < n then blockList{termIdx} else 0
+            in
+                [Value = baseAcc + num255 * 255 + termByte, Pos = termIdx + 1],
+        // Tile a short pattern to `total` bytes (LZ4 overlapping match, offset < matchLen).
+        tileBinary = (pattern as binary, total as number) as binary =>
+            let
+                plen = Binary.Length(pattern),
+                reps = Number.RoundUp(total / plen),
+                repeated = Binary.Combine(List.Repeat({pattern}, reps))
+            in
+                Binary.Range(repeated, 0, total),
+        // Fold `fresh` into `base` roughly every this many produced bytes. This bounds the
+        // per-sequence copy cost while keeping back-reference seeks O(1).
+        foldThreshold = 8192,
+        // Sequence loop. Produced output is kept as base (folded, buffered binary) + fresh
+        // (recent, buffered binary). No deep list/binary "&" chains are ever built, so the
+        // loop is stack-safe regardless of block size.
+        gen = List.Generate(
+            () => [ip = 0, base = #binary({}), baseLen = 0, fresh = #binary({}), freshLen = 0, done = false],
+            // Force base/fresh every step: M is lazy, so without this the accumulated binaries
+            // stay a deferred Buffer(Combine(prev, ...)) chain that is only evaluated at the end,
+            // recursing O(sequence count) deep (stack overflow) and re-evaluating all prior
+            // steps (O(n^2) time). Reading Binary.Length materializes each step's output eagerly.
+            each not [done] and Binary.Length([base]) >= 0 and Binary.Length([fresh]) >= 0,
+            each
+                if [ip] >= n then
+                    [ip = [ip], base = [base], baseLen = [baseLen], fresh = [fresh], freshLen = [freshLen], done = true]
+                else
+                    let
+                        ip = [ip],
+                        base = [base],
+                        baseLen = [baseLen],
+                        token = blockList{ip},
+                        litLenBase = Number.IntegerDivide(token, 16),
+                        matchLenBase = Number.Mod(token, 16),
+                        litExt = if litLenBase = 15 then readLenExt(ip + 1, 15) else [Value = litLenBase, Pos = ip + 1],
+                        litLen = litExt[Value],
+                        litStart = litExt[Pos],
+                        literals = if litLen = 0 then #binary({}) else Binary.Range(block, litStart, litLen),
+                        freshAfterLit = Binary.Buffer(Binary.Combine({[fresh], literals})),
+                        freshLenAfterLit = [freshLen] + litLen,
+                        ipAfterLit = litStart + litLen
+                    in
+                        // The last sequence in a block is literals only (no match follows).
+                        if ipAfterLit >= n then
+                            [ip = n, base = base, baseLen = baseLen, fresh = freshAfterLit, freshLen = freshLenAfterLit, done = false]
+                        else
+                            let
+                                offset = blockList{ipAfterLit} + blockList{ipAfterLit + 1} * 256,
+                                matchExt = if matchLenBase = 15 then readLenExt(ipAfterLit + 2, 15) else [Value = matchLenBase, Pos = ipAfterLit + 2],
+                                matchLen = matchExt[Value] + 4,
+                                ipNext = matchExt[Pos],
+                                outLen = baseLen + freshLenAfterLit,
+                                matchStart = outLen - offset,
+                                // Read `count` bytes from the logical output (base ++ freshAfterLit).
+                                readWin = (absStart, count) =>
+                                    if absStart + count <= baseLen then Binary.Range(base, absStart, count)
+                                    else if absStart >= baseLen then Binary.Range(freshAfterLit, absStart - baseLen, count)
+                                    else
+                                        Binary.Combine({
+                                            Binary.Range(base, absStart, baseLen - absStart),
+                                            Binary.Range(freshAfterLit, 0, count - (baseLen - absStart))
+                                        }),
+                                matchBytes =
+                                    if offset >= matchLen then readWin(matchStart, matchLen)
+                                    else tileBinary(readWin(matchStart, offset), matchLen),
+                                freshAfterMatch = Binary.Buffer(Binary.Combine({freshAfterLit, matchBytes})),
+                                freshLenAfterMatch = freshLenAfterLit + matchLen,
+                                doFold = freshLenAfterMatch >= foldThreshold,
+                                newBase = if doFold then Binary.Buffer(Binary.Combine({base, freshAfterMatch})) else base,
+                                newBaseLen = if doFold then baseLen + freshLenAfterMatch else baseLen,
+                                newFresh = if doFold then #binary({}) else freshAfterMatch,
+                                newFreshLen = if doFold then 0 else freshLenAfterMatch
+                            in
+                                [ip = ipNext, base = newBase, baseLen = newBaseLen, fresh = newFresh, freshLen = newFreshLen, done = false],
+            each _
+        ),
+        last = List.Last(gen)
+    in
+        Binary.Combine({last[base], last[fresh]});
+
+// Decode a full LZ4 frame (magic + descriptor + data blocks + end mark) to binary.
+ArrowLz4FrameDecompress = (frame as binary) as binary =>
+    let
+        fb = Binary.Buffer(frame),
+        bytes = List.Buffer(Binary.ToList(fb)),
+        n = List.Count(bytes),
+        _lenCheck = if n < 7 then ArrowError("LZ4 frame too short", "Arrow.Lz4", "Frame", [Length = n]) else true,
+        magic = bytes{0} + bytes{1} * 256 + bytes{2} * 65536 + bytes{3} * 16777216,
+        _magicCheck = if magic <> 407708164 then ArrowError("Bad LZ4 frame magic", "Arrow.Lz4", "Frame", [Magic = magic]) else true,
+        flg = bytes{4},
+        contentSizeFlag = Number.Mod(Number.IntegerDivide(flg, 8), 2) = 1,
+        blockChecksumFlag = Number.Mod(Number.IntegerDivide(flg, 16), 2) = 1,
+        dictIdFlag = Number.Mod(flg, 2) = 1,
+        afterContentSize = 6 + (if contentSizeFlag then 8 else 0),
+        afterDictId = afterContentSize + (if dictIdFlag then 4 else 0),
+        blockStart = afterDictId + 1, // skip the 1-byte header checksum (HC)
+        // Emit each decoded block as its own binary chunk (no "&" accumulation), then combine
+        // once. Block slices are read from the frame with Binary.Range (O(1) seek), so parsing
+        // many blocks stays linear rather than quadratic.
+        gen = List.Generate(
+            () => [pos = blockStart, chunk = #binary({}), done = false],
+            each not [done] and _lenCheck and _magicCheck,
+            each
+                let
+                    pos = [pos],
+                    blockSizeRaw = bytes{pos} + bytes{pos + 1} * 256 + bytes{pos + 2} * 65536 + bytes{pos + 3} * 16777216,
+                    pos4 = pos + 4
+                in
+                    if blockSizeRaw = 0 then [pos = pos4, chunk = #binary({}), done = true] // EndMark
+                    else
+                        let
+                            isUncompressed = blockSizeRaw >= 2147483648,
+                            blockSize = if isUncompressed then blockSizeRaw - 2147483648 else blockSizeRaw,
+                            blockSlice = Binary.Range(fb, pos4, blockSize),
+                            decoded = if isUncompressed then blockSlice else ArrowLz4DecompressBlock(Binary.Buffer(blockSlice)),
+                            nextPos = pos4 + blockSize + (if blockChecksumFlag then 4 else 0)
+                        in
+                            [pos = nextPos, chunk = decoded, done = false],
+            each [chunk]
+        )
+    in
+        Binary.Combine(gen);
+
+// Decompress one Arrow body buffer slice (the slice includes the 8-byte length prefix).
+ArrowDecompressBufferSlice = (slice as binary, codec as number) as binary =>
+    let
+        sliceLen = Binary.Length(slice)
+    in
+        if sliceLen = 0 then #binary({})
+        else if sliceLen < 8 then ArrowError("Compressed buffer slice too short", "Arrow.RecordBatch", "Compression", [SliceLength = sliceLen])
+        else
+            let
+                uncompLen = ArrowReadInt64LE(slice, 0),
+                payload = if sliceLen = 8 then #binary({}) else Binary.Range(slice, 8, sliceLen - 8)
+            in
+                if uncompLen = -1 then payload
+                else if uncompLen = 0 then #binary({})
+                else if codec = 0 then ArrowLz4FrameDecompress(payload)
+                else ArrowError("Unsupported Arrow compression codec", "Arrow.RecordBatch", "Compression", [Codec = codec]);
+
+// When a RecordBatch/DictionaryBatch declares BodyCompression, decompress every buffer and
+// rebuild a contiguous 8-aligned body plus new buffer offsets/lengths, so all downstream
+// decoding (which assumes raw, uncompressed buffers) works unchanged.
+ArrowDecompressBatchBuffers = (recordBatch as record, body as binary) as record =>
+    let
+        codec = if Record.HasFields(recordBatch, "Compression") then recordBatch[Compression] else null,
+        buffers = recordBatch[Buffers]
+    in
+        if codec = null then [Body = body, Buffers = buffers]
+        else
+            let
+                decompressed = List.Transform(
+                    buffers,
+                    each
+                        let
+                            off = Number.From(_[Offset]),
+                            len = Number.From(_[Length]),
+                            slice = if len <= 0 then #binary({}) else Binary.Range(body, off, len)
+                        in
+                            ArrowDecompressBufferSlice(slice, codec)
+                ),
+                rebuilt = List.Accumulate(
+                    decompressed,
+                    [Parts = {}, Buffers = {}, Offset = 0],
+                    (st, buf) =>
+                        let
+                            bl = Binary.Length(buf),
+                            rem = Number.Mod(bl, 8),
+                            pad = if rem = 0 then 0 else 8 - rem,
+                            padded = if pad = 0 then buf else Binary.Combine({buf, #binary(List.Repeat({0}, pad))}),
+                            newBuf = [Offset = st[Offset], Length = bl]
+                        in
+                            [Parts = st[Parts] & {padded}, Buffers = st[Buffers] & {newBuf}, Offset = st[Offset] + bl + pad]
+                )
+            in
+                [Body = Binary.Combine(rebuilt[Parts]), Buffers = rebuilt[Buffers]];
+
+
 ArrowFBRootTableOffset = (binary as binary) as number =>
     ArrowReadUInt32LE(binary, 0);
 
@@ -3341,7 +3550,10 @@ ArrowParseType = (metadata as binary, typeType as number, typeObj as nullable nu
             else if kind = "Binary" or kind = "Utf8" or kind = "Bool" then
                 Record.FromList({kind}, {"Kind"})
             else if kind = "Date" then
-                Record.FromList({kind, if typeObj = null then 0 else ArrowFBReadScalarInt16(metadata, typeObj, 0, 0)}, {"Kind", "Unit"})
+                // Arrow's Date flatbuffer declares `unit: DateUnit = MILLISECOND` (DAY=0, MILLISECOND=1).
+                // FlatBuffers omits fields equal to their default, so date64[ms] (the default) carries no
+                // unit slot; only date32[day] writes an explicit 0. Default to MILLISECOND=1 when absent.
+                Record.FromList({kind, if typeObj = null then 1 else ArrowFBReadScalarInt16(metadata, typeObj, 0, 1)}, {"Kind", "Unit"})
             else // Timestamp
                 Record.FromList({kind, if typeObj = null then 1 else ArrowFBReadScalarInt16(metadata, typeObj, 0, 1), if typeObj = null then null else ArrowFBReadString(metadata, ArrowFBGetFieldPos(metadata, typeObj, 1))}, {"Kind", "Unit", "Timezone"})
     in
@@ -3427,7 +3639,9 @@ ArrowParseRecordBatch = (metadata as binary, recordBatchObj as number) as record
     let
         metadataLength = Binary.Length(metadata),
         compressionObj = ArrowFBGetTable(metadata, ArrowFBGetFieldPos(metadata, recordBatchObj, 3)),
-        _compressionCheck = if compressionObj <> null then ArrowError("Compressed Arrow bodies are not supported", "Arrow.RecordBatch", "Compression") else true,
+        // BodyCompression.codec: field 0 (byte). 0 = LZ4_FRAME, 1 = ZSTD. We support LZ4_FRAME
+        // and decompress per-buffer downstream; null means the body is uncompressed.
+        compressionCodec = if compressionObj = null then null else ArrowFBReadScalarUInt8(metadata, compressionObj, 0, 0),
         lengthFieldPos = ArrowFBGetFieldPos(metadata, recordBatchObj, 0),
         lengthValue =
             if lengthFieldPos = null then 0
@@ -3456,7 +3670,7 @@ ArrowParseRecordBatch = (metadata as binary, recordBatchObj as number) as record
             else true,
         nodes = if nodeVector[Count] = 0 then {} else List.Transform({0..nodeVector[Count]-1}, each ArrowParseFieldNode(metadata, nodeVector[ValuesPos] + (_ * 16))),
         buffers = if bufferVector[Count] = 0 then {} else List.Transform({0..bufferVector[Count]-1}, each ArrowParseBuffer(metadata, bufferVector[ValuesPos] + (_ * 16))),
-        result = [Length = lengthValue, Nodes = nodes, Buffers = buffers]
+        result = [Length = lengthValue, Nodes = nodes, Buffers = buffers, Compression = compressionCodec]
     in
         result;
 
@@ -3644,12 +3858,11 @@ ArrowDecodePrimitiveValue = (data as binary, valueIndex as number, fieldType as 
                     else ArrowError("Unsupported floating point precision", "Arrow.Arrays", "FloatingPoint", [Precision = precision])
             else if kind = "Date" then
                 let
-                    unit = if fieldType[Unit] = null then 0 else fieldType[Unit],
-                    offset = valueIndex * 4,
-                    raw = ArrowReadInt32LE(data, offset)
+                    // Arrow DateUnit: 0 = DAY (int32 days), 1 = MILLISECOND (int64 date64).
+                    unit = if fieldType[Unit] = null then 0 else fieldType[Unit]
                 in
-                    if unit = 0 then Date.AddDays(ArrowEpochDate, raw)
-                    else DateTime.From(ArrowEpochDateTime + #duration(0, 0, 0, Number.From(raw) / 1000.0))
+                    if unit = 0 then Date.AddDays(ArrowEpochDate, ArrowReadInt32LE(data, valueIndex * 4))
+                    else Date.AddDays(ArrowEpochDate, Number.RoundDown(Number.From(ArrowReadInt64LE(data, valueIndex * 8)) / 86400000))
             else if kind = "Timestamp" then
                 let
                     unit = if fieldType[Unit] = null then 0 else fieldType[Unit],
@@ -3858,7 +4071,7 @@ ArrowDecodeColumn = (body as binary, field as record, node as record, buffers as
                     dataBuffer = ArrowGetBufferSlice(body, buffers, bufferIndex + 1),
                     width = if kind = "Int" then Number.IntegerDivide(if field[Type][BitWidth] = null then 32 else field[Type][BitWidth], 8)
                         else if kind = "FloatingPoint" then (if (field[Type][Precision] = null or field[Type][Precision] = 1) then 4 else 8)
-                        else if kind = "Date" then 4
+                        else if kind = "Date" then (if field[Type][Unit] = 1 then 8 else 4)
                         else 8,
                     expectedBytes = rowCount * width,
                     _sizeCheck = if Binary.Length(dataBuffer) < expectedBytes
@@ -3889,6 +4102,14 @@ ArrowRecordBatchToTable = (schema as list, recordBatch as record, body as binary
         buffers = if buffersTry[HasError]
             then ArrowError("Failed to access RecordBatch Buffers", "Arrow.RecordBatch", "Access", [ErrorReason = try buffersTry[Error][Reason] otherwise null, ErrorMessage = try buffersTry[Error][Message] otherwise ""])
             else buffersTry[Value],
+        // If the batch declares BodyCompression, decompress every buffer and rebuild a
+        // contiguous body so downstream decoding (which assumes raw buffers) is unchanged.
+        decompTry = try ArrowDecompressBatchBuffers(recordBatch, body),
+        decomp = if decompTry[HasError]
+            then ArrowError("RecordBatch decompression failed", "Arrow.RecordBatch", "Compression", [ErrorReason = try decompTry[Error][Reason] otherwise null, ErrorMessage = try decompTry[Error][Message] otherwise "", ErrorDetail = try Text.FromBinary(Json.FromValue(decompTry[Error][Detail]), TextEncoding.Utf8) otherwise ""])
+            else decompTry[Value],
+        effBody = decomp[Body],
+        effBuffers = decomp[Buffers],
         _schemaCountCheck = if List.Count(schema) = 0 
             then ArrowError("Schema has no fields", "Arrow.RecordBatch", "Schema", [NodeCount = List.Count(nodes), BufferCount = List.Count(buffers)])
             else true,
@@ -3906,7 +4127,7 @@ ArrowRecordBatchToTable = (schema as list, recordBatch as record, body as binary
                             _nodeCheck = if nodeIdx >= List.Count(nodes)
                                 then ArrowError("Arrow field/node mismatch", "Arrow.RecordBatch", "FieldNodes", [Field = field[Name], NodeIndex = nodeIdx])
                                 else true,
-                            decodedTry = try ArrowDecodeColumn(body, field, nodes{nodeIdx}, buffers, nodeIdx, s[BufferIndex], dictionaries),
+                            decodedTry = try ArrowDecodeColumn(effBody, field, nodes{nodeIdx}, effBuffers, nodeIdx, s[BufferIndex], dictionaries),
                             decoded = if decodedTry[HasError]
                                 then ArrowError(
                                     "Column decode failed",
@@ -4103,35 +4324,40 @@ ArrowTryMaterializeDictionaryBatch = (entry as record, schema as list, dictionar
 
 ArrowResolvePendingDictionaryBatches = (schema as list, pending as list, dictionaries as record) as record =>
     let
-        initial = [Pending = pending, Dictionaries = dictionaries, MadeProgress = true],
-        final = List.Last(
-            List.Generate(
-                () => initial,
-                each [MadeProgress] and List.Count([Pending]) > 0,
-                each
+        // Attempt to materialize every pending dictionary batch exactly once,
+        // threading the accumulated dictionaries through each attempt. Entries
+        // that cannot yet be resolved are carried forward for a later pass.
+        onePass = (pend as list, dicts as record) as record =>
+            List.Accumulate(
+                pend,
+                [Pending = {}, Dictionaries = dicts, MadeProgress = false],
+                (state, entry) =>
                     let
-                        pass = List.Accumulate(
-                            [Pending],
-                            [Pending = {}, Dictionaries = [Dictionaries], MadeProgress = false],
-                            (state, entry) =>
-                                let
-                                    attempt = ArrowTryMaterializeDictionaryBatch(entry, schema, state[Dictionaries]),
-                                    updatedEntry =
-                                        if attempt[Succeeded]
-                                            then entry
-                                            else Record.Combine({entry, [LastErrorReason = attempt[ErrorReason], LastErrorMessage = attempt[ErrorMessage], LastErrorDetail = attempt[ErrorDetail]]})
-                                in
-                                    if attempt[Succeeded]
-                                        then [Pending = state[Pending], Dictionaries = attempt[Dictionaries], MadeProgress = true or state[MadeProgress]]
-                                        else [Pending = state[Pending] & {updatedEntry}, Dictionaries = state[Dictionaries], MadeProgress = state[MadeProgress]]
-                        )
+                        attempt = ArrowTryMaterializeDictionaryBatch(entry, schema, state[Dictionaries]),
+                        updatedEntry =
+                            if attempt[Succeeded]
+                                then entry
+                                else Record.Combine({entry, [LastErrorReason = attempt[ErrorReason], LastErrorMessage = attempt[ErrorMessage], LastErrorDetail = attempt[ErrorDetail]]})
                     in
-                        [Pending = pass[Pending], Dictionaries = pass[Dictionaries], MadeProgress = pass[MadeProgress]],
-                each _
-            )
-        )
+                        if attempt[Succeeded]
+                            then [Pending = state[Pending], Dictionaries = attempt[Dictionaries], MadeProgress = true]
+                            else [Pending = state[Pending] & {updatedEntry}, Dictionaries = state[Dictionaries], MadeProgress = state[MadeProgress]]
+            ),
+        // Recursive fixpoint: keep running passes while progress is being made and
+        // batches remain unresolved. Returns the fully accumulated dictionaries and
+        // any batches that could not be resolved (so the caller can surface them).
+        resolve = (pend as list, dicts as record) as record =>
+            if List.Count(pend) = 0
+                then [Pending = {}, Dictionaries = dicts]
+                else
+                    let
+                        pass = onePass(pend, dicts)
+                    in
+                        if pass[MadeProgress] and List.Count(pass[Pending]) > 0
+                            then @resolve(pass[Pending], pass[Dictionaries])
+                            else [Pending = pass[Pending], Dictionaries = pass[Dictionaries]]
     in
-        [Pending = final[Pending], Dictionaries = final[Dictionaries]];
+        resolve(pending, dictionaries);
 
 ArrowParseStream = (payload as binary) as table =>
     let
@@ -4163,7 +4389,14 @@ ArrowParseStream = (payload as binary) as table =>
                         _metadataRangeCheck = if (not isEnd) and (metadataStart + metadataLength > length)
                             then ArrowError("Arrow metadata exceeds payload length", "Arrow.Stream", "Framing", [Offset = offset, MetadataStart = metadataStart, MetadataLength = metadataLength, PayloadLength = length])
                             else true,
-                        metadata = if isEnd then #binary({}) else Binary.Range(payload, metadataStart, metadataLength),
+                        // Force the framing guards BEFORE slicing. M is lazy: unless these
+                        // guards are referenced here they never run, and a malformed prefix
+                        // (e.g. "ARROW1..." read as a ~1.9GB metadataLength) would fall through
+                        // to Binary.Range and attempt to materialize a giant slice before failing.
+                        metadata = if isEnd then #binary({})
+                            else if _continuationRequired and _continuationCheck and _metadataCheck and _metadataRangeCheck
+                                then Binary.Range(payload, metadataStart, metadataLength)
+                                else #binary({}),
                         bodyStartUnaligned = if isEnd then metadataStart else metadataStart + metadataLength,
                         bodyStart = if isEnd then metadataStart else ArrowAlign8(bodyStartUnaligned),
                         parsed = if isEnd then [HeaderType = 0, Header = null, BodyLength = 0] else ArrowParseMessage(metadata),
@@ -4177,8 +4410,17 @@ ArrowParseStream = (payload as binary) as table =>
                         _bodyRangeCheckUnaligned = if (not isEnd) and bodyLength > 0 and (bodyStartUnaligned + bodyLength > length)
                             then ArrowError("Arrow unaligned body exceeds payload length", "Arrow.Stream", "Framing", [Offset = offset, BodyStart = bodyStartUnaligned, BodyLength = bodyLength, PayloadLength = length])
                             else true,
-                        body = if isEnd or bodyLength <= 0 then #binary({}) else Binary.Range(payload, bodyStart, bodyLength),
-                        bodyUnaligned = if isEnd or bodyLength <= 0 then #binary({}) else Binary.Range(payload, bodyStartUnaligned, bodyLength),
+                        // Force the body-range guards BEFORE slicing (same dead-guard hazard
+                        // as metadata above): a corrupt bodyLength must fail fast, not attempt
+                        // to materialize an out-of-range slice.
+                        body = if isEnd or bodyLength <= 0 then #binary({})
+                            else if _bodyLengthCheck and _bodyRangeCheck and _bodyRangeCheckUnaligned
+                                then Binary.Range(payload, bodyStart, bodyLength)
+                                else #binary({}),
+                        bodyUnaligned = if isEnd or bodyLength <= 0 then #binary({})
+                            else if _bodyLengthCheck and _bodyRangeCheck and _bodyRangeCheckUnaligned
+                                then Binary.Range(payload, bodyStartUnaligned, bodyLength)
+                                else #binary({}),
                         nextOffset = if _headerCheck = null then length else if isEnd then length else ArrowAlign8(bodyStart + bodyLength),
                         nextSchema = if parsed[HeaderType] = 1
                             then
@@ -4259,7 +4501,7 @@ ArrowParseStream = (payload as binary) as table =>
                                             ]
                                         )
                                         else rbTry[Value],
-                                    rbEvalTry = try [Length = rbRaw[Length], Nodes = List.Buffer(rbRaw[Nodes]), Buffers = List.Buffer(rbRaw[Buffers])],
+                                    rbEvalTry = try [Length = rbRaw[Length], Nodes = List.Buffer(rbRaw[Nodes]), Buffers = List.Buffer(rbRaw[Buffers]), Compression = rbRaw[Compression]],
                                     // Run diagnostics when evaluation fails
                                     evalDiagJson = if rbEvalTry[HasError]
                                         then 
@@ -4331,7 +4573,13 @@ ArrowParseStream = (payload as binary) as table =>
                                         )
                                         else tTry[Value]
                                 in
-                                    [Tables] & {t}
+                                    // Force the message-order and dictionary-resolution guards before
+                                    // returning the table. They are each `true` or a thrown ArrowError,
+                                    // but M is lazy: unless referenced here they would never run, silently
+                                    // materializing a RecordBatch whose dictionaries are unresolved.
+                                    if _pendingDictionaryCheck and _schemaCheck and _rbSchemaCheck
+                                        then [Tables] & {t}
+                                        else [Tables]
                             else [Tables]
                     in
                         [Offset = nextOffset, Schema = nextSchema, Dictionaries = nextDictionaries, PendingDictionaryBatches = nextPendingDictionaryBatches, Tables = nextTables],
@@ -4359,7 +4607,12 @@ ArrowFromBinary = (payload as binary) as table =>
         _compressionCheck = if ArrowDetectionLooksLikeLz4Frame(buffered)
             then ArrowError("Unsupported compression", "Arrow.RecordBatch", "Compression", [Compression = "LZ4_FRAME"])
             else true,
-        parsed = try ArrowParseStream(buffered),
+        // Force the framing/compression guards before parsing. They are defined as
+        // `true` or a thrown ArrowError, but M is lazy: unless referenced here they
+        // would never run, silently accepting non-Arrow or compressed payloads.
+        parsed = if _isArrowPayload and _compressionCheck
+            then try ArrowParseStream(buffered)
+            else null,
         result = if parsed[HasError]
             then
                 let

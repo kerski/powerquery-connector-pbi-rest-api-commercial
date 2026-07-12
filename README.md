@@ -2,7 +2,9 @@
 
 This Custom Data Connector wraps many of the "Get" endpoints in the Power BI API (including dataset query endpoints), so that OAuth can be used to authenticate to the service.  This connector serves as a way to have a library of Power Query functions to build datasets based on the Power BI APIs without the need for storing client secrets or passwords in the dataset.  
 
-Each function returns a JSON body and not a table of data.  This decision was made to provide flexibility in converting the JSON body to tabular data when 1) the API responses are changed by Microsoft or 2) the API responses differ between commercial and sovereign clouds (e.g., GCC, DoD, etc.). 
+Most functions return a JSON body and not a table of data.  This decision was made to provide flexibility in converting the JSON body to tabular data when 1) the API responses are changed by Microsoft or 2) the API responses differ between commercial and sovereign clouds (e.g., GCC, DoD, etc.).
+
+The exceptions are `ExecuteDaxQueries` and `ExecuteDaxQueriesInGroup`, which return a **native Power Query table**. These call the `executeDaxQueries` endpoint, auto-detect Apache Arrow IPC responses, and parse them directly (falling back to JSON parsing only when the response itself is JSON). See [Arrow IPC Support](#arrow-ipc-support-executedaxqueries) and the [call tree](#executedaxqueries-call-tree) below.
 
 ## Table of Contents
 
@@ -11,6 +13,7 @@ Each function returns a JSON body and not a table of data.  This decision was ma
     1. [Using Functions](#using-functions)
     1. [Functions Implemented](#functions-implemented)
     1. [Arrow IPC Support (ExecuteDaxQueries)](#arrow-ipc-support-executedaxqueries)
+    1. [ExecuteDaxQueries Call Tree](#executedaxqueries-call-tree)
     1. [On-Premises Gateway](#on-premises-gateway)
 1. [Building Connector](#building-connector)
     1. [Testing Connector](#testing-connector)
@@ -143,6 +146,8 @@ Supported and validated today:
 - DAX JSON response parsing for non-Arrow payloads from `ExecuteDaxQueries*` endpoints.
 - Dictionary-encoded columns, including recursive dictionary dependencies across dictionary batches.
 - Dictionary delta and replacement semantics in parser logic.
+- **LZ4_FRAME per-buffer body compression** (Arrow `BodyCompression` codec `0`), decompressed in pure M and applied to both record and dictionary batches. This is what real `executeDaxQueries` responses use for wide/large results.
+- `date64` (millisecond) and `date32` (day) column decoding.
 - Deterministic parity validation against `ExecuteQuery*` for representative fixtures including:
     - numbers
     - booleans
@@ -153,7 +158,7 @@ Supported and validated today:
 
 Current limitations and explicit non-support:
 
-- Compressed Arrow record batches are not supported (payload fails with explicit compression diagnostics).
+- ZSTD-compressed Arrow bodies (`BodyCompression` codec `1`) are not supported and fail fast with an `Unsupported Arrow compression codec` diagnostic.
 - Primitive Arrow kinds outside implemented decoding paths fail fast with explicit `Unsupported primitive Arrow type` errors.
 - Unsupported or malformed dictionary metadata fails fast with actionable diagnostics.
 - Arrow parsing support is scoped to connector-tested scenarios; unvalidated Arrow feature families (for example, uncommon extension/layout combinations) are not guaranteed.
@@ -162,6 +167,31 @@ Target Arrow format baseline:
 
 - The parser is implemented against the current connector's Flatbuffers/IPC interpretation used by Power BI `ExecuteDaxQueries*` responses.
 - Compatibility is validated through the project's targeted parity tests and Arrow reliability gate rather than a broad claim of full Apache Arrow specification coverage.
+
+### ExecuteDaxQueries Call Tree
+
+Both `ExecuteDaxQueries` and `ExecuteDaxQueriesInGroup` share the same request/response pipeline; they differ only in the REST path (`.../datasets/{id}/executeDaxQueries` vs `.../groups/{groupId}/datasets/{id}/executeDaxQueries`). The response is buffered, its kind is detected, and it is routed to either the Arrow parser or the JSON parser. There is **no fallback** to `ExecuteQuery*` — a parse failure surfaces as an actionable error.
+
+```mermaid
+flowchart TD
+    A["ExecuteDaxQueries(datasetId, query, ...)"] --> P
+    B["ExecuteDaxQueriesInGroup(groupId, datasetId, query, ...)"] --> P
+    P["BuildExecuteDaxRequestPayload<br/>(drops null options)"] --> PD["PostExecuteDax(params)"]
+    PD --> WC["Web.Contents → .../executeDaxQueries<br/>Accept: arrow.stream, arrow.file, octet-stream, json"]
+    WC --> BB["Binary.Buffer(response)"]
+    BB --> RT["ExecuteDaxResponseAsTable(bytes, headers)"]
+    RT --> DK["ExecuteDaxDetectResponseKind<br/>ArrowDetectionIsArrowResponse:<br/>content-type or Arrow magic bytes"]
+    DK -->|Arrow| AR["ExecuteDaxParseArrowResponse<br/>→ ArrowFromBinary"]
+    DK -->|JSON| JS["ExecuteDaxParseJsonResponse<br/>→ ExecuteDaxJsonToTable"]
+    AR --> PS["ArrowParseStream"]
+    PS --> PM["ArrowParseMessage<br/>Schema / DictionaryBatch / RecordBatch"]
+    PS --> RDB["ArrowResolvePendingDictionaryBatches<br/>→ ArrowParseDictionaryBatch"]
+    PS --> RB["ArrowRecordBatchToTable"]
+    RB --> DCB["ArrowDecompressBatchBuffers<br/>LZ4_FRAME per buffer (codec 0)"]
+    RB --> DEC["ArrowDecodeColumn<br/>(per column, dictionary-aware)"]
+    AR --> T["native Power Query table"]
+    JS --> T
+```
 
 ### GoalValues (Preview)
 | End Point                      | Description  | MSDN Documentation |

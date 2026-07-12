@@ -1,0 +1,32 @@
+table Query2
+	lineageTag: e0fff1e8-1082-451d-b16c-3064d0c36f25
+
+	column Name
+		dataType: string
+		lineageTag: 57c99a1d-c325-43b9-9a2c-2e409911854d
+		summarizeBy: none
+		sourceColumn: Name
+
+		annotation SummarizationSetBy = Automatic
+
+	column Value
+		dataType: string
+		lineageTag: 8274174c-ff0b-40a1-a178-7a10ce40ace3
+		summarizeBy: none
+		sourceColumn: Value
+
+		annotation SummarizationSetBy = Automatic
+
+	partition Query2 = m
+		mode: import
+		source =
+				let
+				    Source = #shared,
+				    #"Converted to Table" = Record.ToTable(Source)
+				in
+				    #"Converted to Table"
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Table
+
