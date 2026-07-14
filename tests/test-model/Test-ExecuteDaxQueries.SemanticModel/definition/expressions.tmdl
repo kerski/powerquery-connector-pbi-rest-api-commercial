@@ -1,0 +1,125 @@
+expression 'Function Catalog' =
+		let
+		    Source = PBIRESTAPIComm.FunctionCatalog()
+		in
+		    Source
+	lineageTag: db996363-87e6-42a5-b6b2-79738eac0912
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Table
+
+expression ExecuteDaxQueriesInGroup =
+		let
+		    Source = PBIRESTAPIComm.FunctionCatalog(),
+		    ExecuteDaxQueriesInGroup1 = Source{[Key="ExecuteDaxQueriesInGroup"]}[Data]
+		in
+		    ExecuteDaxQueriesInGroup1
+	lineageTag: d674cab0-02cc-46bc-a812-0cd44430e6a7
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Function
+
+expression GetGroups =
+		let
+		    Source = PBIRESTAPIComm.FunctionCatalog(),
+		    GetGroups1 = Source{[Key="GetGroups"]}[Data]
+		in
+		    GetGroups1
+	lineageTag: a00d3802-f37e-4db0-be64-17fcbb8815fd
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Function
+
+expression GetDatasetsInGroup =
+		let
+		    Source = PBIRESTAPIComm.FunctionCatalog(),
+		    GetDatasetsInGroup1 = Source{[Key="GetDatasetsInGroup"]}[Data]
+		in
+		    GetDatasetsInGroup1
+	lineageTag: 958b0476-61a7-4000-a596-018ad0ad6b0e
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Function
+
+expression Query1 =
+		(binaryInput as binary) as table =>
+		let
+		    // Convert binary to UTF8
+		    RawText =
+		        Text.FromBinary(
+		            binaryInput,
+		            TextEncoding.Utf8
+		        ),
+		
+		    // Remove null characters
+		    RemoveNulls =
+		        Text.Replace(
+		            RawText,
+		            Character.FromNumber(0),
+		            " "
+		        ),
+		
+		    // Keep readable chars
+		    CleanText =
+		        Text.Select(
+		            RemoveNulls,
+		            {
+		                "A".."Z",
+		                "a".."z",
+		                "0".."9",
+		                "[", "]",
+		                "-", "_",
+		                "/",
+		                ".",
+		                " "
+		            }
+		        ),
+		
+		    // Split on spaces
+		    Tokens =
+		        List.Select(
+		            Text.Split(CleanText, " "),
+		            each Text.Length(_) > 2
+		        ),
+		
+		    // Remove duplicate tokens
+		    DistinctTokens =
+		        List.Distinct(Tokens),
+		
+		    // Convert to table
+		    Output =
+		        Table.FromColumns(
+		            {DistinctTokens},
+		            {"ExtractedText"}
+		        )
+		in
+		    Output
+	lineageTag: 388cc93a-9d5e-4ceb-af1b-230c43ad92ef
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Function
+
+expression Top10-DateDim-Query = "EVALUATE TOPN(10,DateDim,DateDim[Date],DESC)" meta [IsParameterQuery=true, Type="Any", IsParameterQueryRequired=true]
+	lineageTag: 0acf6b42-7a7e-4346-b8d4-422dad18204f
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Text
+
+expression ExecuteQueryInGroup =
+		let
+		    Source = PBIRESTAPIComm.FunctionCatalog(),
+		    ExecuteQueryInGroup1 = Source{[Key="ExecuteQueryInGroup"]}[Data]
+		in
+		    ExecuteQueryInGroup1
+	lineageTag: 8c32d199-18cc-4ff9-a36f-1c818d5d131b
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Function
+

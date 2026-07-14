@@ -1,0 +1,1289 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>PQTest.Common</name>
+    </assembly>
+    <members>
+        <member name="T:PQTest.Common.Configuration">
+            <summary>
+            Members in this class are inferred or for internal use.
+            User visible configuration options should be specified in the UserSettings class.
+            </summary>
+            <see cref="T:PQTest.Common.UserSettings"/>
+        </member>
+        <member name="M:PQTest.Common.Configuration.WriteJsonToOutput(System.String)">
+            <summary>
+            Deserialize the original JSON and serialize it back to output with the current configuration's serializer options.
+            </summary>
+            <param name="json">JSON string</param>
+        </member>
+        <member name="M:PQTest.Common.Configuration.HasCertificateSettings">
+            <summary>
+            Determines if certificate settings are provided (either thumbprint or subject name).
+            </summary>
+            <returns>True if either CertificateThumbprint or CertificateSubjectName are not null or empty.</returns>
+        </member>
+        <member name="M:PQTest.Common.Configuration.GetCertificate">
+            <summary>
+            Gets the certificate using either thumbprint or subject name lookup.
+            </summary>
+            <returns>X509Certificate2 if found, null if no certificate settings are provided.</returns>
+            <exception cref="T:PQTest.Common.ConfigurationException">Thrown when certificate is not found or validation fails.</exception>
+        </member>
+        <member name="T:PQTest.Common.Credentials.CredentialEntry">
+            <summary>
+            Represents a credential entry with its identifier and data source setting.
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Credentials.CredentialEntry.Id">
+            <summary>
+            Gets the unique identifier for this credential entry.
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Credentials.CredentialEntry.Setting">
+            <summary>
+            Gets the data source setting containing authentication information.
+            </summary>
+        </member>
+        <member name="M:PQTest.Common.Credentials.CredentialEntry.#ctor(System.String,Microsoft.Data.Mashup.DataSourceSetting)">
+            <summary>
+            Initializes a new instance of the <see cref="T:PQTest.Common.Credentials.CredentialEntry"/> class.
+            </summary>
+            <param name="id">The identifier for this credential entry.</param>
+            <param name="setting">The data source setting.</param>
+        </member>
+        <member name="M:PQTest.Common.Credentials.CredentialStore.SetCredential(PQTest.Common.Credentials.DataSourceKey,Microsoft.Data.Mashup.DataSourceSetting,Microsoft.Data.Mashup.AuthenticationInfo)">
+            <summary>
+            SetCredential w/o Id will always create and persist a new entry in the credential dictionary
+            Thus, when we need to refresh one dataSourceSetting please use SetCredential(Guid id instead
+            Or, we could use UnSafeUpdateAndPersist, in its callback, update one or append one of the
+            tupleList and return the tupleList to UnSafeUpdateAndPersist
+            </summary>
+            <param name="dataSource"></param>
+            <param name="setting"></param>
+            <param name="authenticationInfo"></param>
+        </member>
+        <member name="M:PQTest.Common.Credentials.CredentialStore.RefreshTraditionalOAuthCredential(System.String,Microsoft.Data.Mashup.DataSourceReference,Microsoft.Mashup.OAuth.TokenCredential,Microsoft.Data.Mashup.AuthenticationInfo,System.Collections.Generic.List{System.String},Microsoft.Data.Mashup.DataSourceSetting@)">
+            <summary>
+            Refreshes a traditional OAuth credential using refresh token flow.
+            </summary>
+        </member>
+        <member name="M:PQTest.Common.Credentials.CredentialStore.RefreshMsalCredential(System.String,Microsoft.Data.Mashup.DataSourceReference,Microsoft.Mashup.OAuth.TokenCredential,Microsoft.Data.Mashup.AuthenticationInfo,System.Collections.Generic.List{System.String},Microsoft.Data.Mashup.DataSourceSetting@)">
+            <summary>
+            Refreshes an MSAL credential using silent token acquisition.
+            </summary>
+        </member>
+        <member name="T:PQTest.Common.Credentials.TestCredential">
+            <summary>
+            Represents a test credential that can be applied non-interactively during query evaluation.
+            Test credentials are specified in settings files and matched against data sources by Kind and Path/Pattern.
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Credentials.TestCredential.Kind">
+            <summary>
+            The data source kind that this credential applies to.
+            Must match the DataSource.Kind value defined in the connector.
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Credentials.TestCredential.Path">
+            <summary>
+            Exact path match for the data source. Mutually exclusive with Pattern.
+            Use this when you want to match a specific data source path exactly.
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Credentials.TestCredential.Pattern">
+            <summary>
+            Regular expression pattern to match data source paths. Mutually exclusive with Path.
+            Use "*" to match all paths for the given Kind, or provide a regex pattern for more specific matching.
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Credentials.TestCredential.Type">
+            <summary>
+            The type of credential to create for matching data sources.
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Credentials.TestCredential.Settings">
+            <summary>
+            Type-specific settings for credential creation.
+            Contents depend on the credential Type. May be null for types that don't require additional settings.
+            </summary>
+        </member>
+        <member name="M:PQTest.Common.Credentials.TestCredential.Validate">
+            <summary>
+            Validates the test credential configuration.
+            </summary>
+            <exception cref="T:PQTest.Common.ConfigurationException">Thrown when the credential configuration is invalid.</exception>
+        </member>
+        <member name="M:PQTest.Common.Credentials.TestCredential.Matches(System.String,System.String)">
+            <summary>
+            Checks if this test credential matches the given data source.
+            </summary>
+            <param name="dataSourceKind">The data source kind to match against.</param>
+            <param name="dataSourcePath">The data source path to match against.</param>
+            <returns>True if this credential matches the data source; otherwise, false.</returns>
+        </member>
+        <member name="M:PQTest.Common.Credentials.TestCredential.ValidateOAuthPlaceholderSettings">
+            <summary>
+            Validates the settings for an OAuth Placeholder test credential.
+            </summary>
+        </member>
+        <member name="T:PQTest.Common.Credentials.TestCredentialType">
+            <summary>
+            Defines the types of test credentials that can be created non-interactively.
+            </summary>
+        </member>
+        <member name="F:PQTest.Common.Credentials.TestCredentialType.Anonymous">
+            <summary>
+            Creates an anonymous credential with no authentication.
+            </summary>
+        </member>
+        <member name="F:PQTest.Common.Credentials.TestCredentialType.Windows">
+            <summary>
+            Creates a Windows credential using the current user's authentication.
+            </summary>
+        </member>
+        <member name="F:PQTest.Common.Credentials.TestCredentialType.MsalCertificate">
+            <summary>
+            Creates an Azure AD credential using MSAL certificate-based authentication.
+            Requires Settings with FindBy (Thumbprint/SubjectName) and Value properties.
+            </summary>
+        </member>
+        <member name="F:PQTest.Common.Credentials.TestCredentialType.OAuthPlaceholder">
+            <summary>
+            Creates a placeholder OAuth credential for testing purposes.
+            All settings are optional: AccessToken, Expires, RefreshToken, and additional properties.
+            </summary>
+        </member>
+        <member name="T:PQTest.Common.Credentials.TestCredentialFactory">
+            <summary>
+            Factory for creating DataSourceSetting instances from TestCredential configurations.
+            </summary>
+        </member>
+        <member name="M:PQTest.Common.Credentials.TestCredentialFactory.CreateDataSourceSetting(PQTest.Common.Credentials.TestCredential,Microsoft.Data.Mashup.DataSource,System.Guid)">
+            <summary>
+            Creates a DataSourceSetting from a TestCredential configuration.
+            </summary>
+            <param name="testCredential">The test credential configuration.</param>
+            <param name="dataSource">The data source that needs credentials.</param>
+            <param name="activityId">Activity ID for MSAL operations.</param>
+            <returns>A DataSourceSetting that can be used for authentication.</returns>
+        </member>
+        <member name="T:PQTest.Common.Credentials.TestCredentialSettings">
+            <summary>
+            Contains string constants for TestCredential settings keys.
+            </summary>
+        </member>
+        <member name="F:PQTest.Common.Credentials.TestCredentialSettings.FindBy">
+            <summary>
+            Setting key for specifying how to find a certificate (Thumbprint or SubjectName).
+            </summary>
+        </member>
+        <member name="F:PQTest.Common.Credentials.TestCredentialSettings.Value">
+            <summary>
+            Setting key for the certificate value (thumbprint or subject name).
+            </summary>
+        </member>
+        <member name="F:PQTest.Common.Credentials.TestCredentialSettings.AccessToken">
+            <summary>
+            Setting key for OAuth access token.
+            </summary>
+        </member>
+        <member name="F:PQTest.Common.Credentials.TestCredentialSettings.Expires">
+            <summary>
+            Setting key for OAuth expiration time.
+            </summary>
+        </member>
+        <member name="F:PQTest.Common.Credentials.TestCredentialSettings.RefreshToken">
+            <summary>
+            Setting key for OAuth refresh token.
+            </summary>
+        </member>
+        <member name="F:PQTest.Common.Credentials.TestCredentialSettings.UserLoginHint">
+            <summary>
+            Setting key for user login hint (UPN or email) for MSAL authentication.
+            </summary>
+        </member>
+        <member name="F:PQTest.Common.Credentials.TestCredentialSettings.FindByThumbprint">
+            <summary>
+            Valid value for FindBy setting to search by certificate thumbprint.
+            </summary>
+        </member>
+        <member name="F:PQTest.Common.Credentials.TestCredentialSettings.FindBySubjectName">
+            <summary>
+            Valid value for FindBy setting to search by certificate subject name.
+            </summary>
+        </member>
+        <member name="T:PQTest.Common.Domains.Web.AuthKind">
+            <summary>
+            Copied from src/Product/Client/AuthoringCore/JsonContracts/AuthKind.cs
+                Microsoft.Mashup.Web.Client.Authoring.Core.JsonContracts
+            </summary>
+        </member>
+        <member name="T:PQTest.Common.Domains.Web.Connection">
+            <summary>
+            Copied from src/Product/Client/AuthoringCore/JsonContracts/Connection.cs
+                Microsoft.Mashup.Web.Client.Authoring.Core.JsonContracts.Connection
+            </summary>
+        </member>
+        <member name="T:PQTest.Common.Domains.Web.ConnectionData">
+            <summary>
+            Copied from src/Product/Client/Desktop/UI/ConnectionData.cs
+                Microsoft.Mashup.Client.Desktop.UI.ConnectionData
+            </summary>
+        </member>
+        <member name="T:PQTest.Common.Domains.Web.ConnectionOAuthCredentials">
+            <summary>
+            Copied from src/Product/Client/AuthoringCore/JsonContracts/ConnectionOAuthCredentials.cs
+                Microsoft.Mashup.Web.Client.Authoring.Core.JsonContracts.ConnectionOAuthCredentials
+            </summary>
+        </member>
+        <member name="T:PQTest.Common.Domains.Web.EncryptConnection">
+            <summary>
+            Copied from src/Product/Client/AuthoringCore/JsonContracts/EncryptConnection.cs
+                Microsoft.Mashup.Web.Client.Authoring.Core.JsonContracts.EncryptConnection
+            </summary>
+        </member>
+        <member name="T:PQTest.Common.Domains.Web.ErrorCodeResult">
+            <summary>
+            Copied from src/Product/Client/Core/DataContracts/Evaluation/Result/ErrorCodeResult.cs
+                Microsoft.Mashup.Web.Fabric.Core.DataContracts.Evaluation.ErrorCodeResult
+            </summary>
+        </member>
+        <member name="T:PQTest.Common.Domains.Web.EvaluationResult">
+            <summary>
+            Copied from src/Product/Client/Core/DataContracts/Evaluation/Result/EvaluationResult.cs
+                Microsoft.Mashup.Web.Fabric.Core.DataContracts.Evaluation.EvaluationResult
+            </summary>
+        </member>
+        <member name="T:PQTest.Common.Domains.Web.EvaluationUsage">
+            <summary>
+            Copied from src/Product/Client/Core/DataContracts/Evaluation/EvaluationUsage.cs
+                Microsoft.Mashup.Web.Fabric.Core.DataContracts.Evaluation.EvaluationUsage
+            </summary>
+        </member>
+        <member name="T:PQTest.Common.Domains.Web.MashupDataSource">
+            <summary>
+            Copied from src/Product/Client/Core/DataContracts/MashupDataSource.cs
+                Microsoft.Mashup.Web.Fabric.Core.DataContracts
+            </summary>
+        </member>
+        <member name="T:PQTest.Common.Domains.Web.MashupDataSourceReference">
+            <summary>
+            Copied from src/Product/Client/Core/JsonContracts/MashupDataSourceReference.cs
+                Microsoft.Mashup.Web.Fabric.Core.DataContracts
+            </summary>
+        </member>
+        <member name="T:PQTest.Common.Domains.Web.MashupDataSourceReferenceAddressPart">
+            <summary>
+            Copied from src/Product/Client/Core/JsonContracts/MashupDataSourceReferenceAddressPart.cs
+            Microsoft.Mashup.Web.Fabric.Core.DataContracts
+            </summary>
+        </member>
+        <member name="T:PQTest.Common.Domains.Web.ResultWithErrorCode`1">
+            <summary>
+            Copied from src/Product/Client/Core/DataContracts/ResultWithErrorCode.cs
+                Microsoft.Mashup.Web.Fabric.Core
+            </summary>
+            <typeparam name="TSuccess"></typeparam>
+        </member>
+        <member name="T:PQTest.Common.Evaluation.ITestResult">
+            <summary>
+            Interface for TestEvaluationResult properties used by TRX report generation
+            </summary>
+            <remarks>
+            This interface captures the members of TestEvaluationResult that are used by 
+            the GenerateTrxReportUtility class. It allows for better separation of concerns
+            and facilitates testing.
+            </remarks>
+        </member>
+        <member name="P:PQTest.Common.Evaluation.ITestResult.Name">
+            <summary>
+            Gets the name of the test
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Evaluation.ITestResult.Type">
+            <summary>
+            Gets the type of the test
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Evaluation.ITestResult.Status">
+            <summary>
+            Gets the run status of the test (Pending, InProgress, Failed, etc.)
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Evaluation.ITestResult.StartTime">
+            <summary>
+            Gets the start time of the test execution
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Evaluation.ITestResult.EndTime">
+            <summary>
+            Gets the end time of the test execution
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Evaluation.ITestResult.DurationTotalSeconds">
+            <summary>
+            Gets the duration of the test in seconds
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Evaluation.ITestResult.Details">
+            <summary>
+            Gets the details about the test execution, often contains error messages
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Evaluation.ITestResult.Output">
+            <summary>
+            Gets the output from the test run
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Evaluation.ITestResult.Error">
+            <summary>
+            Gets error information if the test failed
+            </summary>
+        </member>
+        <member name="T:PQTest.Common.Json.TestEvaluationResult">
+            <summary>
+            Tracks status of a single test
+            </summary>
+            <remarks>
+            XML schema follows XUnit v2 spec: https://xunit.net/docs/format-xml-v2#test
+            </remarks>
+        </member>
+        <member name="P:PQTest.Common.Json.TestEvaluationResult.Output">
+            <summary>
+            output from run
+            </summary>
+            <remarks>
+            from Azure Dev Ops XML schema
+            </remarks>
+        </member>
+        <member name="P:PQTest.Common.Json.TestEvaluationResult.HttpMock">
+            <summary>
+            HttpMock server status and statistics (only populated when HTTP mocking is used)
+            </summary>
+        </member>
+        <member name="M:PQTest.Common.Msal.BrowserBasedNonInteractiveCba.GetCertAuthUrlAsync(PQTest.Common.Msal.BrowserBasedNonInteractiveCba.AuthFlowContext,System.Threading.CancellationToken)">
+            <summary>
+            Gets the certificate authentication URL from the login.microsoftonline.com endpoint.
+            </summary>
+            <param name="authFlowContext">Auth flow context.</param>
+            <param name="cancellationToken">Cancellation token.</param>
+            <returns>Cert auth url.</returns>
+        </member>
+        <member name="T:PQTest.Common.Msal.MsalClientApplication">
+            <summary>
+            Factory and configuration class for MSAL client applications.
+            Provides MSAL client instances configured with the same settings as the existing
+            AadClientApplication for seamless integration.
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Msal.MsalClientApplication.Default">
+            <summary>
+            Gets the default MSAL public client application instance.
+            This is configured with the same client ID and redirect URI as AadClientApplication.Default.
+            </summary>
+        </member>
+        <member name="M:PQTest.Common.Msal.MsalClientApplication.CreateDefaultClient">
+            <summary>
+            Creates a new MSAL public client application with default configuration.
+            </summary>
+            <returns>Configured MSAL public client application</returns>
+        </member>
+        <member name="M:PQTest.Common.Msal.MsalClientApplication.CreateClient(System.String,System.String,System.String)">
+            <summary>
+            Creates a new MSAL public client application with custom configuration.
+            </summary>
+            <param name="clientId">Azure AD application client ID</param>
+            <param name="redirectUri">OAuth redirect URI</param>
+            <param name="authority">Azure AD authority URL</param>
+            <returns>Configured MSAL public client application</returns>
+        </member>
+        <member name="M:PQTest.Common.Msal.MsalClientApplication.ConfigureTokenCache(Microsoft.Identity.Client.IPublicClientApplication)">
+            <summary>
+            Configures the token cache for the MSAL application.
+            This sets up persistent token caching to improve performance and user experience.
+            </summary>
+            <param name="app">MSAL public client application</param>
+        </member>
+        <member name="M:PQTest.Common.Msal.MsalOAuthProvider.#ctor(Microsoft.Mashup.OAuth.OAuthResource)">
+            <summary>
+            Initializes a new instance of the MsalOAuthProvider class.
+            </summary>
+            <param name="oauthResource">OAuth resource containing scope and endpoint information</param>
+        </member>
+        <member name="M:PQTest.Common.Msal.MsalOAuthProvider.AuthenticateInteractive(System.Boolean)">
+            <summary>
+            Performs interactive authentication using MSAL with the configured OAuth resource.
+            This method is for scenarios where user interaction is acceptable (e.g., set-credential command).
+            </summary>
+            <param name="useSystemBrowser">Whether to use the system browser instead of embedded WebView</param>
+            <returns>MSAL authentication result containing tokens and account information</returns>
+        </member>
+        <member name="M:PQTest.Common.Msal.MsalOAuthProvider.AuthenticateSilently(System.String)">
+            <summary>
+            This method is for scenarios where user interaction is not allowed (e.g., refresh-credential command).
+            </summary>
+            <param name="accountId">Account ID or username for authentication</param>
+            <returns>MSAL authentication result containing tokens and account information</returns>
+        </member>
+        <member name="M:PQTest.Common.Msal.MsalOAuthProvider.CreateTokenCredential(Microsoft.Identity.Client.AuthenticationResult)">
+            <summary>
+            Creates a TokenCredential from the MSAL authentication result.
+            </summary>
+            <param name="authResult">MSAL authentication result</param>
+            <returns>TokenCredential compatible with the existing credential system</returns>
+        </member>
+        <member name="M:PQTest.Common.Msal.MsalOAuthProvider.AuthenticateWithCertificate(System.Security.Cryptography.X509Certificates.X509Certificate2,System.Boolean,System.String,System.Boolean)">
+            <summary>
+            Performs certificate-based authentication with enhanced token caching.
+            First attempts silent authentication with cached tokens, falls back to interactive if necessary.
+            </summary>
+            <param name="certificate">The certificate to use for authentication</param>
+            <param name="useSystemBrowser">Whether to use the system browser instead of embedded WebView</param>
+            <param name="loginHint">Optional login hint to use for authentication</param>
+            <param name="allowInteraction">Whether interactive authentication is allowed if silent authentication fails</param>
+            <returns>MSAL authentication result containing tokens and account information</returns>
+        </member>
+        <member name="M:PQTest.Common.Msal.MsalOAuthProvider.GenerateScopes(Microsoft.Mashup.OAuth.OAuthResource)">
+            <summary>
+            Generates MSAL-compatible scopes from OAuth resource information.
+            Handles single resource, multiple scopes, and multi-resource scenarios.
+            </summary>
+            <param name="oauthResource">OAuth resource containing scope and endpoint information</param>
+            <returns>Array of MSAL-compatible scope strings for the primary resource</returns>
+        </member>
+        <member name="M:PQTest.Common.Msal.MsalOAuthProvider.PerformInteractiveAuthentication(System.String[],System.Boolean)">
+            <summary>
+            Performs interactive authentication.
+            </summary>
+            <param name="scopes">Scopes to request</param>
+            <param name="useSystemBrowser">Whether to use the system browser instead of embedded WebView</param>
+            <returns>Authentication result</returns>
+        </member>
+        <member name="M:PQTest.Common.Msal.MsalOAuthProvider.PerformCertificateAuthentication(System.String[],System.Security.Cryptography.X509Certificates.X509Certificate2,System.Boolean,System.String,System.Boolean)">
+            <summary>
+            Performs certificate-based authentication using Azure AD Certificate-Based Authentication (CBA).
+            First attempts silent authentication, then falls back to interactive authentication if needed.
+            </summary>
+            <param name="scopes">Scopes to request</param>
+            <param name="certificate">Certificate to use for authentication</param>
+            <param name="useSystemBrowser">Whether to use the system browser instead of embedded WebView</param>
+            <param name="loginHint">Optional login hint to use for authentication</param>
+            <param name="allowInteraction">Whether interactive authentication is allowed if silent authentication fails</param>
+            <returns>Authentication result</returns>
+        </member>
+        <member name="M:PQTest.Common.Msal.MsalOAuthProvider.GetUserFriendlyMsalErrorMessage(Microsoft.Identity.Client.MsalException)">
+            <summary>
+            Gets a user-friendly error message for MSAL exceptions.
+            </summary>
+            <param name="msalEx">The MSAL exception</param>
+            <returns>User-friendly error message</returns>
+        </member>
+        <member name="M:PQTest.Common.Msal.MsalOAuthProvider.AddTokensForSecondaryResources(System.Collections.Generic.Dictionary{System.String,System.String},Microsoft.Identity.Client.AuthenticationResult,PQTest.Common.ScopesByResource)">
+            <summary>
+            Acquires and stores additional access tokens for secondary resources in multi-resource scenarios.
+            Based on Microsoft's MsalProvider.AddTokensForSecondaryResources implementation pattern.
+            </summary>
+            <param name="properties">Properties dictionary to store additional tokens</param>
+            <param name="primaryResult">Primary authentication result</param>
+            <param name="scopesByResource">Organized scopes by resource</param>
+        </member>
+        <member name="M:PQTest.Common.Msal.MsalOAuthProvider.EncodeAccessTokenKey(System.String)">
+            <summary>
+            Encodes an access token key for a resource URI.
+            Based on TokenCredential.EncodeAccessTokenKey implementation.
+            </summary>
+            <param name="resourceUri">Resource URI to encode</param>
+            <returns>Encoded access token key</returns>
+        </member>
+        <member name="T:PQTest.Common.ScopesByResource">
+            <summary>
+            Represents scope collections organized by resource for MSAL authentication.
+            </summary>
+        </member>
+        <member name="M:PQTest.Common.ScopesByResource.From(Microsoft.Mashup.OAuth.OAuthResource)">
+            <summary>
+            Parses OAuthResource into organized scope collections by resource.
+            Based on the MsalProvider implementation in the Power BI Desktop code.
+            </summary>
+            <param name="oauthResource">OAuth resource to parse</param>
+            <returns>Organized scopes by resource</returns>
+        </member>
+        <member name="T:PQTest.Common.Strings">
+            <summary>
+              A strongly-typed resource class, for looking up localized strings, etc.
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.ResourceManager">
+            <summary>
+              Returns the cached ResourceManager instance used by this class.
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.Culture">
+            <summary>
+              Overrides the current thread's CurrentUICulture property for all
+              resource lookups using this strongly typed resource class.
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.AllCredentialsDeleted">
+            <summary>
+              Looks up a localized string similar to All credentials deleted..
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.AtLeastOneExtensionPathMustBeProvided">
+            <summary>
+              Looks up a localized string similar to At least one extension path must be provided..
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.CertificateAuthenticationSuccessful">
+            <summary>
+              Looks up a localized string similar to Certificate authentication completed successfully.
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.CredentialDeleted">
+            <summary>
+              Looks up a localized string similar to Credential deleted..
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.CredentialDidNotContainRefreshTokenValue">
+            <summary>
+              Looks up a localized string similar to Credential did not contain RefreshToken value..
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.CredentialRefreshSuccessful">
+            <summary>
+              Looks up a localized string similar to Credential refresh successful..
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.DataSourceKindAndPathShouldNotBeIncludedWhenProvidingAnMExpression">
+            <summary>
+              Looks up a localized string similar to Data source kind and path should not be included when providing an M expression..
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.DataSourceReferenceAndDataSourceAnalysisShouldNotBeProvidedTogether">
+            <summary>
+              Looks up a localized string similar to A DataSourceReference and a DataSourceAnalysis should not be provided at the same time..
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.DataSourceReferenceRequired">
+            <summary>
+              Looks up a localized string similar to A data source reference or data source analysis file must be provided..
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.DataSourceSettingMustBeProvided">
+            <summary>
+              Looks up a localized string similar to DataSourceSetting must be provided..
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.Error_CertificateAuthenticationFailed">
+            <summary>
+              Looks up a localized string similar to Certificate-based authentication failed: {0}.
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.Error_CertificateInteractionRequiredButNotAllowed">
+            <summary>
+              Looks up a localized string similar to Certificate-based authentication requires interactive authentication but it is not allowed in this context. This may indicate an issue with the certificate configuration or authentication flow..
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.Error_CertificateThumbprintAndSubjectNameMutuallyExclusive">
+            <summary>
+              Looks up a localized string similar to Certificate thumbprint and subject name options cannot be used together. Please specify either --certificate or --certificateSubjectName, but not both..
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.Error_CertificateThumbprintInvalidCharacters">
+            <summary>
+              Looks up a localized string similar to Certificate thumbprint must contain only hexadecimal characters..
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.Error_CertificateThumbprintInvalidLength">
+            <summary>
+              Looks up a localized string similar to Certificate thumbprint must be 40 characters long (SHA-1 hash)..
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.Error_CredentialsFilePathContainsIllegalCharacters">
+            <summary>
+              Looks up a localized string similar to Illegal characters in credentials file path: &apos;{0}&apos;.
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.Error_FailedToReadInputFile">
+            <summary>
+              Looks up a localized string similar to Received error reading input file..
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.Error_FailedToReadParameterFile">
+            <summary>
+              Looks up a localized string similar to Received error reading parameter file..
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.Error_FolderNotFoundForCredentialsFilePath">
+            <summary>
+              Looks up a localized string similar to Folder path not found: &apos;{0}&apos; for credentials file path.
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.Error_Format_CertificateNotFound">
+            <summary>
+              Looks up a localized string similar to Certificate with thumbprint &apos;{0}&apos; not found in CurrentUser or LocalMachine certificate stores. If the certificate exists in the store, it must be valid and have a Private Key value..
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.Error_Format_CertificateNotFoundBySubjectName">
+            <summary>
+              Looks up a localized string similar to Certificate with subject name &apos;{0}&apos; not found in CurrentUser or LocalMachine certificate stores. If the certificate exists in the store, it must be valid and have a Private Key value..
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.Error_Format_CredentialsFilePathIsEmpty">
+            <summary>
+              Looks up a localized string similar to Credential file path &apos;{0}&apos; contains a directory but is missing a file name..
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.Error_Format_CredentialStoreVersion">
+            <summary>
+              Looks up a localized string similar to Incompatible credential store version ({0}). Expected: {1}..
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.Error_Format_DataSourceAnalysisParseError">
+            <summary>
+              Looks up a localized string similar to Error parsing DataSourceAnalysis content in JSON format: {0}.
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.Error_Format_DeleteExistingCredentialStore">
+            <summary>
+              Looks up a localized string similar to Error while loading from credential store: &apos;{0}&apos;. This could indicate that the credential store was created with a newer or incompatible version of the tools, a different user account, or the credential data is corrupt. If you delete the credential store, a new one will be created..
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.Error_Format_DuplicateExtensionPath">
+            <summary>
+              Looks up a localized string similar to Duplicate extension path value found: &apos;{0}&apos;.
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.Error_Format_ExtensionPathNotFoundPath">
+            <summary>
+              Looks up a localized string similar to Extension path not found: &apos;{0}&apos;.
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.Error_Format_FailedToCopyFile">
+            <summary>
+              Looks up a localized string similar to Failed to copy file from &apos;{0}&apos; to &apos;{1}&apos;.
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.Error_Format_FailedToCreateApplicationPath">
+            <summary>
+              Looks up a localized string similar to Failed to create application path.
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.Error_Format_HttpMockFileNotFound">
+            <summary>
+              Looks up a localized string similar to HTTP mock specification file not found: {0}.
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.Error_Format_HttpMockInitializationFailed">
+            <summary>
+              Looks up a localized string similar to Failed to initialize HTTP mocking: {0}.
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.Error_Format_HttpMockParsingFailed">
+            <summary>
+              Looks up a localized string similar to Failed to parse HTTP mock specification: {0}.
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.Error_Format_HttpMockServerStartFailed">
+            <summary>
+              Looks up a localized string similar to Failed to start HTTP mock server: {0}.
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.Error_Format_InvalidCredentialProperty">
+            <summary>
+              Looks up a localized string similar to Unsupported credential property value type &apos;{0}&apos; for &apos;{1}&apos;..
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.Error_Format_InvalidPath">
+            <summary>
+              Looks up a localized string similar to Invalid characters found in path value &apos;{0}&apos;.
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.Error_Format_TestCredentialEmptyRequiredSetting">
+            <summary>
+              Looks up a localized string similar to MsalCertificate TestCredential &apos;{0}&apos; setting cannot be empty..
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.Error_Format_TestCredentialFactoryCertificateAuthenticationFailedSubjectName">
+            <summary>
+              Looks up a localized string similar to Certificate authentication failed for subject name &apos;{0}&apos;: {1}.
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.Error_Format_TestCredentialFactoryCertificateAuthenticationFailedThumbprint">
+            <summary>
+              Looks up a localized string similar to Certificate authentication failed for thumbprint &apos;{0}&apos;: {1}.
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.Error_Format_TestCredentialFactoryCreationFailed">
+            <summary>
+              Looks up a localized string similar to Failed to create {0} credential: {1}.
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.Error_Format_TestCredentialFactoryInvalidFindBy">
+            <summary>
+              Looks up a localized string similar to MsalCertificate TestCredential &apos;FindBy&apos; must be &apos;Thumbprint&apos; or &apos;SubjectName&apos;, got: {0}.
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.Error_Format_TestCredentialFactoryUnableToObtainOAuthResource">
+            <summary>
+              Looks up a localized string similar to Unable to obtain OAuth resource for data source kind: {0}.
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.Error_Format_TestCredentialFactoryUnsupportedType">
+            <summary>
+              Looks up a localized string similar to Unsupported TestCredentialType: {0}.
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.Error_Format_TestCredentialInvalidFindByValue">
+            <summary>
+              Looks up a localized string similar to MsalCertificate TestCredential &apos;FindBy&apos; must be either &apos;{0}&apos; or &apos;{1}&apos;..
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.Error_Format_TestCredentialInvalidRegexPattern">
+            <summary>
+              Looks up a localized string similar to TestCredential Pattern is not a valid regular expression: {0}.
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.Error_Format_TestCredentialMissingRequiredSetting">
+            <summary>
+              Looks up a localized string similar to MsalCertificate TestCredential requires &apos;{0}&apos; setting..
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.Error_Format_TestCredentialUnknownType">
+            <summary>
+              Looks up a localized string similar to Unknown TestCredentialType: {0}.
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.Error_Format_UnableToFindCredential">
+            <summary>
+              Looks up a localized string similar to Unable to find credential for &apos;{0}&apos;.
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.Error_Format_UnexpectedFileExtensionForPath">
+            <summary>
+              Looks up a localized string similar to Unexpected extension for file &apos;{0}&apos;. Valid file extensions are .dll, .pqx, .mez and .pq..
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.Error_Format_UnexpectedLibraryCount">
+            <summary>
+              Looks up a localized string similar to File: &apos;{0}&apos; Expected 1 library in extension, received {1}.
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.Error_Format_UnsupportedAuthenticationKind">
+            <summary>
+              Looks up a localized string similar to Unsupported AuthenticationKind: {0}.
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.Error_InvalidCredentialStore">
+            <summary>
+              Looks up a localized string similar to The credential store does not match the expected format..
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.Error_InvalidDataSourceReferenceFormat">
+            <summary>
+              Looks up a localized string similar to Invalid data source reference format..
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.Error_InvalidOutputFileExtension">
+            <summary>
+              Looks up a localized string similar to The Test.OutputFileExtension metadata contains invalid characters..
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.Error_MsalCertificateAndInteractiveConflict">
+            <summary>
+              Looks up a localized string similar to Certificate and interactive authentication options cannot be used together..
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.Error_MsalInteractiveAuthenticationRequired">
+            <summary>
+              Looks up a localized string similar to Interactive authentication must be enabled when no certificate thumbprint is provided for MSAL authentication..
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.Error_MsalOnlySupportedForAzureAD">
+            <summary>
+              Looks up a localized string similar to MSAL authentication is only supported for connectors that support Entra ID authentication (&quot;AAD&quot; authentication kind)..
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.Error_ParameterFileMustBeExpression">
+            <summary>
+              Looks up a localized string similar to The parameter file must be in an M Expression format..
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.Error_ParsingInputFile">
+            <summary>
+              Looks up a localized string similar to Error parsing input file.
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.Error_ParsingParameterFile">
+            <summary>
+              Looks up a localized string similar to Error parsing parameter file.
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.Error_QueryFilePathShouldBeDirectory">
+            <summary>
+              Looks up a localized string similar to The query file path should be a directory when using test filters..
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.Error_TestCredentialFactoryMsalAuthenticationFailed">
+            <summary>
+              Looks up a localized string similar to MSAL certificate authentication failed - no authentication result returned..
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.Error_TestCredentialKindRequired">
+            <summary>
+              Looks up a localized string similar to TestCredential Kind is required and cannot be empty..
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.Error_TestCredentialMsalCertificateRequiresSettings">
+            <summary>
+              Looks up a localized string similar to MsalCertificate TestCredential requires Settings with FindBy and Value properties..
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.Error_TestCredentialPathAndPatternMutuallyExclusive">
+            <summary>
+              Looks up a localized string similar to TestCredential cannot specify both Path and Pattern. Use only one..
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.Error_TestCredentialPathOrPatternRequired">
+            <summary>
+              Looks up a localized string similar to TestCredential must specify either Path or Pattern..
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.Error_TestFileMustBeExpression">
+            <summary>
+              Looks up a localized string similar to The test file must be in an M Expression format, not a Section document..
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.Error_UnsupportedDataSourceReferenceProtocol">
+            <summary>
+              Looks up a localized string similar to Unknown or unsupported data source reference protocol. Did you forget to include an extension?.
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.Error_WebView2EdgeChromiumRuntimeNotFound">
+            <summary>
+              Looks up a localized string similar to WebView2 (Edge Chromium) runtime not found..
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.Error_WebView2FailedInitialization">
+            <summary>
+              Looks up a localized string similar to WebView2 failed initialization.
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.ExceptionReceivedDuringCredentialRefresh">
+            <summary>
+              Looks up a localized string similar to Exception received during credential refresh..
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.FailedToRetrieveAzureADResource">
+            <summary>
+              Looks up a localized string similar to Failed to retrieve Azure AD resource..
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.Format_CredentialKindIsNotRefreshable">
+            <summary>
+              Looks up a localized string similar to Credential kind is not refreshable &apos;{0}&apos;.
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.Format_DataSourceDoesNotSupportAuthenticationKind">
+            <summary>
+              Looks up a localized string similar to Data source ({0}) does not support the &apos;{1}&apos; authentication kind. The following kinds are valid for this source: {2}..
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.Format_DataSourceDoesNotSupportOAuth">
+            <summary>
+              Looks up a localized string similar to Data source &apos;{0}&apos; does not support an OAuth authentication type.
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.Format_ExpectedOneDataSourceInExpression">
+            <summary>
+              Looks up a localized string similar to Expected 1 data source in expression, but {0} were found..
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.Format_FailedToCreateTestOutputDirectory">
+            <summary>
+              Looks up a localized string similar to Failed to create intermediate output directory at &apos;{0}&apos;..
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.Format_FileOrFolderPathNotFound">
+            <summary>
+              Looks up a localized string similar to File or Folder path not found: &apos;{0}&apos;.
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.Format_FilePathNotFound">
+            <summary>
+              Looks up a localized string similar to File path not found: &apos;{0}&apos;.
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.Format_FolderEmpty">
+            <summary>
+              Looks up a localized string similar to Folder path is empty: &apos;{0}&apos;.
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.Format_FolderNoValidTestFound">
+            <summary>
+              Looks up a localized string similar to No valid test found in the folder: &apos;{0}&apos;.
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.Format_FolderPathNotFound">
+            <summary>
+              Looks up a localized string similar to Folder path not found: &apos;{0}&apos;.
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.Format_MissingEnvironmentVariable">
+            <summary>
+              Looks up a localized string similar to Missing &apos;{0}&apos; environment variable value..
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.Format_TestConnectionExpressionDataSourcePathMismatch">
+            <summary>
+              Looks up a localized string similar to Data source path of TestConnection expression &apos;{0}&apos; did not match original data source path &apos;{1}&apos;.
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.Format_TestConnectionExpressionUnexpectedDataSourceKind">
+            <summary>
+              Looks up a localized string similar to Data source kind of TestConnection expression &apos;{0}&apos; did not match original data source kind &apos;{1}&apos;.
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.Format_UnableToFindCredentialForDataSource">
+            <summary>
+              Looks up a localized string similar to Unable to find credential for &apos;{0}&apos;.
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.Format_UnableToGenerateTestConnectionCall">
+            <summary>
+              Looks up a localized string similar to Unable to generate TestConnection call for &apos;{0}&apos;. Has TestConnection been implemented?.
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.Format_UnknownDataSourceKind">
+            <summary>
+              Looks up a localized string similar to Unknown DataSourceKind &apos;{0}&apos;.
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.MissingCredentialStorageLocation">
+            <summary>
+              Looks up a localized string similar to Missing credential storage location..
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.MissingDataSourceInformation">
+            <summary>
+              Looks up a localized string similar to Missing data source information. Data source kind and path values, or an M expression must be provided..
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.MissingMExpression">
+            <summary>
+              Looks up a localized string similar to M expression must be provided..
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.NoValidTestPathFileOrExpressionProvided">
+            <summary>
+              Looks up a localized string similar to No valid test path, file, or expression provided..
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.NoValidTestPathProvidedNoTestsFound">
+            <summary>
+              Looks up a localized string similar to No valid test path provided. No tests found..
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.ResponseBodySignInCompleteMessage">
+            <summary>
+              Looks up a localized string similar to Sign in complete. You can return to the application. Feel free to close this browser tab..
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.ResponseHeadSignInCompleteMessage">
+            <summary>
+              Looks up a localized string similar to Sign in complete.
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.SuccessfullySetCredential">
+            <summary>
+              Looks up a localized string similar to Successfully set credential.
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.TemporaryFileIdentifier">
+            <summary>
+              Looks up a localized string similar to Temporary File ( in &apos;{0}&apos; ).
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.TestConnectionExpressionError">
+            <summary>
+              Looks up a localized string similar to Invalid TestConnection expression.
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.TestConnectionExpressionException">
+            <summary>
+              Looks up a localized string similar to Received an error while generating the TestConnection expression.
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.TestConnectionExpressionIsValid">
+            <summary>
+              Looks up a localized string similar to TestConnection expression is valid.
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.TestConnectionFailed">
+            <summary>
+              Looks up a localized string similar to TestConnection failed.
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.TestConnectionSucceeded">
+            <summary>
+              Looks up a localized string similar to TestConnection succeeded.
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.TrxReportWarningNoResults">
+            <summary>
+              Looks up a localized string similar to Warning: No test results to output..
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.UnableToDetermineDataSourceFromExpression">
+            <summary>
+              Looks up a localized string similar to Unable to determine data source from expression. This may indicate unexpected or invalid parameters to your data source function call..
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.UserCancelledOAuthFlowDialog">
+            <summary>
+              Looks up a localized string similar to User cancelled OAuth flow dialog..
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.UserInteractionMustBeEnabledToRunThisCommand">
+            <summary>
+              Looks up a localized string similar to User interaction must be enabled to run this command..
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.Strings.Warning_HttpMockNoMocksFound">
+            <summary>
+              Looks up a localized string similar to No HTTP mock definitions found in file: {0}.
+            </summary>
+        </member>
+        <member name="T:PQTest.Common.UserSettings">
+            <summary>
+            Configuration settings for PQTest operations that can be loaded from a JSON file.
+            This class represents all the configuration options that can be passed to PQTest.exe
+            using a settings file via the --settingsFile option.
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.UserSettings.ApplicationProperties">
+            <summary>
+            Individual application property settings accessed using Extension.CurrentApplication().
+            These are key-value pairs that can be retrieved in connector code.
+            Example: {"MyCustomProperty": "Property value", "AnotherProperty": "Value"}
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.UserSettings.AuthenticationKind">
+            <summary>
+            Specifies the authentication kind to use for data source connections.
+            Valid values: Anonymous, UsernamePassword, Key, Windows, OAuth2, Aad
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.UserSettings.CertificateSubjectName">
+            <summary>
+            Subject name of the client certificate to use for authentication, if required by the data source.
+            This is an alternative to CertificateThumbprint for locating certificates using the X509FindType.FindBySubjectName method.
+            Only one of CertificateThumbprint or CertificateSubjectName should be specified.
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.UserSettings.CertificateThumbprint">
+            <summary>
+            Thumbprint of the client certificate to use for authentication, if required by the data source.
+            This is typically used for Azure Data Lake Storage Gen2 and other services that support
+            client certificate authentication.
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.UserSettings.CredentialProperties">
+            <summary>
+            Individual credential property settings accessed using Extension.CurrentCredential().
+            These are key-value pairs that provide additional credential configuration.
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.UserSettings.CredentialsFilePath">
+            <summary>
+            Path to a credential cache file where authentication credentials are stored.
+            If not specified, credentials are stored in the default location under %LOCALAPPDATA%/Microsoft/pqtest.
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.UserSettings.DataSourceAnalysisFile">
+            <summary>
+            Path to a file containing data source analysis information.
+            Used for advanced testing scenarios with data source metadata.
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.UserSettings.DataSourceKind">
+            <summary>
+            Specifies the data source kind for the connector being tested.
+            This should match the DataSource.Kind value defined in your connector.
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.UserSettings.DataSourcePath">
+            <summary>
+            Specifies the data source path or connection parameters.
+            The format depends on the specific connector being tested.
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.UserSettings.DataSourceReferenceFile">
+            <summary>
+            Path to a file containing reference data source information.
+            Used for comparison testing scenarios.
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.UserSettings.DiagnosticsFolderPath">
+            <summary>
+            Path to a folder where diagnostic information and trace files will be stored.
+            If not specified, diagnostics are stored in the default temp location.
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.UserSettings.EnvironmentConfiguration">
+            <summary>
+            Individual environment configuration settings accessed using Environment.Configuration().
+            These are key-value pairs that configure the mashup execution environment.
+            Example: {"Cloud": "global", "Region": "us-east-1"}
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.UserSettings.ExtensionPaths">
+            <summary>
+            List of paths to connector extension files (.mez/.pqx) to load for testing.
+            Multiple extensions can be specified. Each path should point to a valid connector file.
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.UserSettings.FailOnFoldingFailure">
+            <summary>
+            When true, replicates Direct Query behavior by failing when a query doesn't completely fold to the data source.
+            This helps ensure queries will perform well in production environments that require query folding.
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.UserSettings.FailOnMissingOutputFile">
+            <summary>
+            When true, compare operations will fail if the expected PQOut reference file doesn't exist,
+            instead of generating a new one. Useful for ensuring test completeness.
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.UserSettings.HttpMockPath">
+            <summary>
+            Path to HTTP mock configuration for testing connectors that make HTTP requests.
+            Allows simulation of HTTP responses without requiring actual network connectivity.
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.UserSettings.IntermediateTestResultsFolder">
+            <summary>
+            Path to a folder where intermediate test results will be stored during execution.
+            Used for debugging and analysis of test execution steps.
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.UserSettings.LogMashupEngineTraceLevel">
+            <summary>
+            Enables logging of mashup engine traces with different verbosity levels.
+            Valid values: "user" (custom connector traces), "engine" (engine traces), "all" (both user and engine traces), or empty string (disabled).
+            Trace files are stored under %localappdata%/Microsoft/PQTest/Logs.
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.UserSettings.OutputFolderPath">
+            <summary>
+            Path to the folder where test output files will be generated.
+            If not specified, output is generated in the current working directory.
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.UserSettings.OwnerAlias">
+            <summary>
+            Owner alias or identifier for test runs. Used for tracking and organizing test results.
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.UserSettings.ParameterQueryFilePath">
+            <summary>
+            Path to a parameter query file containing M expressions that provide test data parameters.
+            The file should contain M expressions (.m/.pq) that point to test data on the data source.
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.UserSettings.PersistIntermediateTestResults">
+            <summary>
+            When true, intermediate test results are saved to disk for later analysis.
+            Useful for debugging test failures and understanding query execution steps.
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.UserSettings.PrettyPrint">
+            <summary>
+            When true, JSON output is formatted with indentation and line breaks for better readability.
+            Equivalent to using the --prettyPrint/-p command line option.
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.UserSettings.QueryFilePath">
+            <summary>
+            Path to a query file containing section document or M expression (.m/.pq) to execute.
+            The file should contain either a single data source function call or a complete M query.
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.UserSettings.SkipOutput">
+            <summary>
+            When true, suppresses normal output generation. Useful for performance testing or when only side effects matter.
+            Default value is false.
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.UserSettings.TestCredentials">
+            <summary>
+            List of test credentials that can be applied non-interactively during query evaluation.
+            These credentials are matched against data sources by Kind and Path/Pattern and used when
+            no credentials are found in the credential store. Enables automated testing without
+            requiring pre-configured credentials.
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.UserSettings.TestFilters">
+            <summary>
+            List of test filters to apply when running tests.
+            Filters can use wildcards (*) and arbitrary directory depth (**/*).
+            Filters that begin with "!" are treated as exclusions.
+            </summary>
+            <seealso href="https://learn.microsoft.com/dotnet/core/extensions/file-globbing">file-globbing</seealso>
+        </member>
+        <member name="P:PQTest.Common.UserSettings.TestNamePrefix">
+            <summary>
+            Prefix to add to test names in generated reports.
+            Helps organize and categorize tests in larger test suites.
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.UserSettings.TrxReportPath">
+            <summary>
+            Path where TRX (Visual Studio Test Results) format files will be generated.
+            Also generates separate JSON files for each test in the specified path.
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.UserSettings.UserLoginHint">
+            <summary>
+            User login hint to use for MSAL authentication flows.
+            When specified, this value is used as the login hint for both silent and interactive authentication.
+            If not specified, the system will attempt to extract the UPN from the certificate when available.
+            CLI option: --loginHint
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.UserSettings.UseSystemBrowser">
+            <summary>
+            When true, uses the system's default browser for interactive OAuth flows instead of embedded browser controls.
+            Useful when embedded browser authentication is not working properly.
+            </summary>
+        </member>
+        <member name="P:PQTest.Common.UserSettings.ValidateWithStrictDataSourcePath">
+            <summary>
+            When true, enables strict validation of data source paths during connector validation.
+            Ensures data source paths exactly match expected formats.
+            </summary>
+        </member>
+        <member name="M:PQTest.Common.Utilities.GetDocumentKind(System.String,System.String)">
+            <summary>
+            Parses input <paramref name="code"/> to determine whether it is in section or expression format.
+            </summary>
+            <param name="code">M expression</param>
+            <param name="identifier">Optional identifier to use in error messages.</param>
+            <returns>Returns "Section" or "Expression".</returns>
+            <exception cref="T:PQTest.Common.DocumentParsingException">Thrown if <paramref name="code"/> is not a valid M document.</exception>
+        </member>
+        <member name="M:PQTest.Common.Utils.GenerateTrxReportUtility.WriteToOutput(System.Collections.Generic.IEnumerable{PQTest.Common.Evaluation.ITestResult},System.String,System.String,System.String,System.Guid,System.String,System.Text.Json.JsonSerializerOptions)">
+            <summary>
+            Writes test results to a TRX file using individual parameters instead of a Configuration object
+            </summary>
+            <param name="battery">The collection of test results to output</param>
+            <param name="trxReportPath">The directory where the TRX report will be saved</param>
+            <param name="resultsFilePath">Name of the results file (without .trx extension) and subdirectory for JSON results.</param>
+            <param name="testNamePrefix">The full prefix to use for test names</param>
+            <param name="activityId">The activity ID to use in the report</param>
+            <param name="ownerAlias">The owner alias to include in the report</param>
+            <param name="jsonSerializerOptions">Options for JSON serialization</param>
+        </member>
+    </members>
+</doc>

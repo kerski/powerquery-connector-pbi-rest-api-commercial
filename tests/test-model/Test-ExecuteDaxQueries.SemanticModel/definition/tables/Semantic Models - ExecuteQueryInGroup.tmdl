@@ -1,0 +1,73 @@
+table 'Semantic Models - ExecuteQueryInGroup'
+	lineageTag: 776469e4-38c0-4dc1-946a-8f5d02d7e31d
+
+	column DateDim[DateID]
+		dataType: string
+		lineageTag: 290c21fa-e9ed-46bd-aa3e-c22c0663b44b
+		summarizeBy: none
+		sourceColumn: DateDim[DateID]
+
+		annotation SummarizationSetBy = Automatic
+
+	column DateDim[Date]
+		dataType: string
+		lineageTag: 7e78ec22-d469-4962-aeee-b6547912ad2a
+		summarizeBy: none
+		sourceColumn: DateDim[Date]
+
+		annotation SummarizationSetBy = Automatic
+
+	column DateDim[DateKey]
+		dataType: string
+		lineageTag: b1023829-d1b4-420e-8179-b2f81ce93c66
+		summarizeBy: none
+		sourceColumn: DateDim[DateKey]
+
+		annotation SummarizationSetBy = Automatic
+
+	column DateDim[MonthYearSort]
+		dataType: string
+		lineageTag: 44837348-38db-4c12-87f3-64f320ff62cf
+		summarizeBy: none
+		sourceColumn: DateDim[MonthYearSort]
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'DateDim[Month Year]'
+		dataType: string
+		lineageTag: e68791f3-3663-463f-b0e2-7d8ca8c072e1
+		summarizeBy: none
+		sourceColumn: DateDim[Month Year]
+
+		annotation SummarizationSetBy = Automatic
+
+	partition 'Semantic Models - ExecuteQueryInGroup' = m
+		mode: import
+		source =
+				let
+				    Source = Workspaces,
+				    #"Removed Other Columns" = Table.SelectColumns(Source,{"Workspace ID"}),
+				    #"Invoked Custom Function" = Table.AddColumn(#"Removed Other Columns", "GetDatasetsInGroup", each GetDatasetsInGroup([Workspace ID])),
+				    #"Parsed JSON" = Table.TransformColumns(#"Invoked Custom Function",{{"GetDatasetsInGroup", Json.Document}}),
+				    #"Expanded GetDatasetsInGroup" = Table.ExpandRecordColumn(#"Parsed JSON", "GetDatasetsInGroup", {"value"}, {"value"}),
+				    #"Expanded value" = Table.ExpandListColumn(#"Expanded GetDatasetsInGroup", "value"),
+				    #"Expanded value1" = Table.ExpandRecordColumn(#"Expanded value", "value", {"id", "name"}, {"Semantic Model ID", "Semantic Model Name"}),
+				    #"Filtered Rows" = Table.SelectRows(#"Expanded value1", each ([Semantic Model Name] = "SampleModel")),
+				    #"Invoked Custom Function1" = Table.AddColumn(#"Filtered Rows", "ExecuteQueryInGroup", each ExecuteQueryInGroup([Workspace ID], [Semantic Model ID], "EVALUATE TOPN(10,DateDim,DateDim[Date],DESC)", null)),
+				    #"Filtered Rows1" = Table.SelectRows(#"Invoked Custom Function1", each ([Workspace ID] = "5eead271-c129-4454-b0d2-9a659b613f88")),
+				    #"Parsed JSON1" = Table.TransformColumns(#"Filtered Rows1",{{"ExecuteQueryInGroup", Json.Document}}),
+				    #"Expanded ExecuteQueryInGroup" = Table.ExpandRecordColumn(#"Parsed JSON1", "ExecuteQueryInGroup", {"results"}, {"ExecuteQueryInGroup.results"}),
+				    #"Expanded ExecuteQueryInGroup.results" = Table.ExpandListColumn(#"Expanded ExecuteQueryInGroup", "ExecuteQueryInGroup.results"),
+				    #"Expanded ExecuteQueryInGroup.results1" = Table.ExpandRecordColumn(#"Expanded ExecuteQueryInGroup.results", "ExecuteQueryInGroup.results", {"tables"}, {"ExecuteQueryInGroup.results.tables"}),
+				    #"Expanded ExecuteQueryInGroup.results.tables" = Table.ExpandListColumn(#"Expanded ExecuteQueryInGroup.results1", "ExecuteQueryInGroup.results.tables"),
+				    #"Expanded ExecuteQueryInGroup.results.tables1" = Table.ExpandRecordColumn(#"Expanded ExecuteQueryInGroup.results.tables", "ExecuteQueryInGroup.results.tables", {"rows"}, {"ExecuteQueryInGroup.results.tables.rows"}),
+				    #"Expanded ExecuteQueryInGroup.results.tables.rows" = Table.ExpandListColumn(#"Expanded ExecuteQueryInGroup.results.tables1", "ExecuteQueryInGroup.results.tables.rows"),
+				    #"Expanded ExecuteQueryInGroup.results.tables.rows1" = Table.ExpandRecordColumn(#"Expanded ExecuteQueryInGroup.results.tables.rows", "ExecuteQueryInGroup.results.tables.rows", {"DateDim[DateID]", "DateDim[Date]", "DateDim[DateKey]", "DateDim[MonthYearSort]", "DateDim[Month Year]"}, {"DateDim[DateID]", "DateDim[Date]", "DateDim[DateKey]", "DateDim[MonthYearSort]", "DateDim[Month Year]"}),
+				    #"Removed Other Columns1" = Table.SelectColumns(#"Expanded ExecuteQueryInGroup.results.tables.rows1",{"DateDim[DateID]", "DateDim[Date]", "DateDim[DateKey]", "DateDim[MonthYearSort]", "DateDim[Month Year]"})
+				in
+				    #"Removed Other Columns1"
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Table
+
