@@ -9,7 +9,7 @@
     custom connector.  For more information on installing a custom data connector with a gateway
     please see: https://learn.microsoft.com/en-us/power-bi/connect-data/service-gateway-custom-connectors .
 */
-[Version = "1.3.0"]
+[Version = "2.0.0"]
 section PBIRESTAPIComm;
 [
     DataSource.Kind = "PBIRESTAPIComm",
