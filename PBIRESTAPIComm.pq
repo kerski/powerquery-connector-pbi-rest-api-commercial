@@ -4421,7 +4421,7 @@ ArrowParseStream = (payload as binary) as table =>
                             else if _bodyLengthCheck and _bodyRangeCheck and _bodyRangeCheckUnaligned
                                 then Binary.Range(payload, bodyStartUnaligned, bodyLength)
                                 else #binary({}),
-                        nextOffset = if _headerCheck = null then length else if isEnd then length else ArrowAlign8(bodyStart + bodyLength),
+                        nextOffset = if _headerCheck = null then length else if isEnd then metadataStart else ArrowAlign8(bodyStart + bodyLength),
                         nextSchema = if parsed[HeaderType] = 1
                             then
                                 let
@@ -4582,7 +4582,7 @@ ArrowParseStream = (payload as binary) as table =>
                                         else [Tables]
                             else [Tables]
                     in
-                        [Offset = nextOffset, Schema = nextSchema, Dictionaries = nextDictionaries, PendingDictionaryBatches = nextPendingDictionaryBatches, Tables = nextTables],
+                        [Offset = nextOffset, Schema = if isEnd then null else nextSchema, Dictionaries = if isEnd then [] else nextDictionaries, PendingDictionaryBatches = if isEnd then {} else nextPendingDictionaryBatches, Tables = nextTables],
                 each _
             )
         ),

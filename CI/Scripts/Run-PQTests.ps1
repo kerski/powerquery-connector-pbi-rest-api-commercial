@@ -203,6 +203,7 @@ $RelQueryFilePaths = @(
     ".\\PBIRESTAPIComm.tests.datasets.nofallback.query.pq",
     ".\\PBIRESTAPIComm.tests.datasets.parity.query.pq",
     ".\\PBIRESTAPIComm.tests.datasets.query.pq",
+    ".\\PBIRESTAPIComm.tests.multievaluate.query.pq",
     ".\\PBIRESTAPIComm.tests.reports.query.pq",
     ".\\PBIRESTAPIComm.tests.groups.query.pq",
     ".\\PBIRESTAPIComm.tests.pipelines.query.pq",
