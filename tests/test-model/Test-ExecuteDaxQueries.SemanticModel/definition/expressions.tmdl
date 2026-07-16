@@ -4,6 +4,7 @@ expression 'Function Catalog' =
 		in
 		    Source
 	lineageTag: db996363-87e6-42a5-b6b2-79738eac0912
+	queryGroup: Functions
 
 	annotation PBI_NavigationStepName = Navigation
 
@@ -16,6 +17,7 @@ expression ExecuteDaxQueriesInGroup =
 		in
 		    ExecuteDaxQueriesInGroup1
 	lineageTag: d674cab0-02cc-46bc-a812-0cd44430e6a7
+	queryGroup: Functions
 
 	annotation PBI_NavigationStepName = Navigation
 
@@ -28,6 +30,7 @@ expression GetGroups =
 		in
 		    GetGroups1
 	lineageTag: a00d3802-f37e-4db0-be64-17fcbb8815fd
+	queryGroup: Functions
 
 	annotation PBI_NavigationStepName = Navigation
 
@@ -40,6 +43,7 @@ expression GetDatasetsInGroup =
 		in
 		    GetDatasetsInGroup1
 	lineageTag: 958b0476-61a7-4000-a596-018ad0ad6b0e
+	queryGroup: Functions
 
 	annotation PBI_NavigationStepName = Navigation
 
@@ -106,6 +110,7 @@ expression Query1 =
 
 expression Top10-DateDim-Query = "EVALUATE TOPN(10,DateDim,DateDim[Date],DESC)" meta [IsParameterQuery=true, Type="Any", IsParameterQueryRequired=true]
 	lineageTag: 0acf6b42-7a7e-4346-b8d4-422dad18204f
+	queryGroup: Parameters
 
 	annotation PBI_NavigationStepName = Navigation
 
@@ -118,8 +123,66 @@ expression ExecuteQueryInGroup =
 		in
 		    ExecuteQueryInGroup1
 	lineageTag: 8c32d199-18cc-4ff9-a36f-1c818d5d131b
+	queryGroup: Functions
 
 	annotation PBI_NavigationStepName = Navigation
 
 	annotation PBI_ResultType = Function
+
+expression pql-assert-workspace =
+		let
+		    Source = GetGroups(null, null, null),
+		    #"Parsed JSON" = Json.Document(Source),
+		    value = #"Parsed JSON"[value],
+		    #"Converted to Table" = Table.FromList(value, Splitter.SplitByNothing(), null, null, ExtraValues.Error),
+		    #"Expanded Column1" = Table.ExpandRecordColumn(#"Converted to Table", "Column1", {"id", "name", "capacityId"}, {"id", "name", "capacityId"}),
+		    #"Filtered Rows1" = Table.SelectRows(#"Expanded Column1", each ([name] = "pql-assert-demo")),
+		    #"Renamed Columns" = Table.RenameColumns(#"Filtered Rows1",{{"id", "Workspace ID"}, {"name", "Workspace Name"}, {"capacityId", "Capacity ID"}}),
+		    #"Changed Type" = Table.TransformColumnTypes(#"Renamed Columns",{{"Capacity ID", type text}, {"Workspace Name", type text}, {"Workspace ID", type text}})
+		in
+		    #"Changed Type"
+	lineageTag: 28fa6f18-fcf9-4990-9a68-896b55eac979
+	queryGroup: pql-assert-demo
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Table
+
+expression pql-assert-dataset =
+		let
+		    Source = #"pql-assert-workspace",
+		    #"Invoked Custom Function" = Table.AddColumn(Source, "GetDatasetsInGroup", each GetDatasetsInGroup([Workspace ID])),
+		    #"Parsed JSON" = Table.TransformColumns(#"Invoked Custom Function",{{"GetDatasetsInGroup", Json.Document}}),
+		    #"Expanded GetDatasetsInGroup" = Table.ExpandRecordColumn(#"Parsed JSON", "GetDatasetsInGroup", {"value"}, {"value"}),
+		    #"Expanded value" = Table.ExpandListColumn(#"Expanded GetDatasetsInGroup", "value"),
+		    #"Expanded value1" = Table.ExpandRecordColumn(#"Expanded value", "value", {"id", "name"}, {"id", "name"}),
+		    #"Filtered Rows" = Table.SelectRows(#"Expanded value1", each ([name] = "TestingModel")),
+		    #"Renamed Columns" = Table.RenameColumns(#"Filtered Rows",{{"id", "Dataset ID"}}),
+		    #"Removed Other Columns" = Table.SelectColumns(#"Renamed Columns",{"Dataset ID", "Workspace ID"}),
+		    #"Invoked Custom Function1" = Table.AddColumn(#"Removed Other Columns", "ExecuteDaxQueriesInGroup", each ExecuteDaxQueriesInGroup([Workspace ID], [Dataset ID], "EVALUATE PQL.Assert.RetrieveTestsV2()", null, null, null, null, null, null, null, null, null)),
+		    #"Expanded ExecuteDaxQueriesInGroup" = Table.ExpandTableColumn(#"Invoked Custom Function1", "ExecuteDaxQueriesInGroup", {"[Name]", "[Description]", "[PQLAssert_ImpersonatedUserName]"}, {"[Name]", "[Description]", "[PQLAssert_ImpersonatedUserName]"}),
+		    #"Inserted Prefix" = Table.AddColumn(#"Expanded ExecuteDaxQueriesInGroup", "Prefix", each "EVALUATE " & [#"[Name]"], type text),
+		    #"Inserted Suffix" = Table.AddColumn(#"Inserted Prefix", "Suffix", each [Prefix] & "()", type text),
+		    #"Grouped Rows" = Table.Group(#"Inserted Suffix", {"Workspace ID", "Dataset ID"}, {{"Query", each Text.Combine([Suffix],"#(lf)"), type text}}),
+		    #"Invoked Custom Function2" = Table.AddColumn(#"Grouped Rows", "ExecuteDaxQueriesInGroup", each ExecuteDaxQueriesInGroup([Workspace ID], [Dataset ID], [Query], null, null, null, null, null, null, null, null, null))
+		in
+		    #"Invoked Custom Function2"
+	lineageTag: 2970faa6-edac-4218-899e-6499f1400d17
+	queryGroup: pql-assert-demo
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Table
+
+expression 'PBIRESTAPIComm Version' =
+		let
+		    Source = PBIRESTAPIComm.Version
+		in
+		    Source
+	lineageTag: 97cdc644-50c7-4c99-86e7-3a64ffe80276
+	queryGroup: Functions
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Text
 

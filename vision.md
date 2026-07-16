@@ -4,7 +4,7 @@ This project delivers a production-ready Power Query connector for Power BI REST
 
 ## Objective
 
-Build and maintain a connector where `ExecuteDaxQueries*` output is validated against `ExecuteQuery*` output through deterministic, cell-by-cell parity tests, while keeping local and CI test execution fast through targeted test-file selection.
+Build and maintain a connector where `ExecuteDaxQueries*` returns a list of tables (one table per EVALUATE result set, each preserving its own schema) and whose result sets are validated against `ExecuteQuery*` output through deterministic, cell-by-cell parity tests, while keeping local and CI test execution fast through targeted test-file selection.
 
 ## Requirements
 
@@ -35,12 +35,13 @@ Design direction:
 Testing is mandatory and built around deterministic parity and selective execution.
 
 Test strategy:
-- Baseline: `ExecuteQuery` and `ExecuteQueryInGroup` JSON responses.
-- Candidate: `ExecuteDaxQueries` and `ExecuteDaxQueriesInGroup` Arrow-capable responses.
-- Compare canonicalized tables for:
+- Baseline: `ExecuteQuery` and `ExecuteQueryInGroup` JSON responses (a single result set).
+- Candidate: `ExecuteDaxQueries` and `ExecuteDaxQueriesInGroup` Arrow-capable responses returning a list of tables (one per EVALUATE result set).
+- For parity, compare the corresponding result-set table (result set 0 for single-EVALUATE queries) against the baseline for:
   - Ordered column names and count.
   - Row count.
   - Cell-by-cell normalized values with type-aware handling.
+- Multi-EVALUATE coverage asserts list length equals the number of EVALUATE statements and that each list item is a table with its own schema.
 
 Required coverage:
 - Arrow helper unit and error-path tests for detection and binary helpers.

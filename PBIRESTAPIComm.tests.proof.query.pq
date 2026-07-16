@@ -39,7 +39,7 @@ shared MyExtension.UnitTest =
     ),
     
     // Get Arrow candidate
-    ExecuteDaxQueriesResult = ExecuteDaxQueries(DatasetTestID, DateDimQuery),
+    ExecuteDaxQueriesResult = ExecuteDaxQueries(DatasetTestID, DateDimQuery){0},
     ExecuteDaxQueriesColumns = Table.ColumnNames(ExecuteDaxQueriesResult),
     ExecuteDaxQueriesRows = Table.ToRecords(ExecuteDaxQueriesResult),
     

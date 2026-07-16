@@ -9,7 +9,7 @@
     custom connector.  For more information on installing a custom data connector with a gateway
     please see: https://learn.microsoft.com/en-us/power-bi/connect-data/service-gateway-custom-connectors .
 */
-[Version = "2.0.0"]
+[Version = "2.2.0"]
 section PBIRESTAPIComm;
 [
     DataSource.Kind = "PBIRESTAPIComm",
@@ -116,6 +116,11 @@ shared PBIRESTAPIComm.ExecuteDaxParseArrowResponse = ExecuteDaxParseArrowRespons
 shared PBIRESTAPIComm.ExecuteDaxParseJsonResponse = ExecuteDaxParseJsonResponse;
 shared PBIRESTAPIComm.ExecuteDaxDetectResponseKind = ExecuteDaxDetectResponseKind;
 shared PBIRESTAPIComm.ExecuteDaxResponseAsTable = ExecuteDaxResponseAsTable;
+
+// Queryable build stamp. Reference `PBIRESTAPIComm.Version` in a blank query to
+// confirm which connector build Power BI Desktop actually loaded. If this does
+// not match the latest source version, the loaded .mez is stale/cached.
+shared PBIRESTAPIComm.Version = "2.2.0";
 
 /*****************
     APPS
@@ -1596,9 +1601,9 @@ ExecuteDaxQueriesType = type function (
             Documentation.FieldDescription = "Whether the query should return schema only."
         ]
     )
-) as table meta [
+) as list meta [
     Documentation.Name = "PBIRESTAPIComm.ExecuteDaxQueries",
-    Documentation.LongDescription = "Executes DAX queries and returns a native table. Arrow payloads are auto-detected and parsed when supported.",
+    Documentation.LongDescription = "Executes DAX queries and returns a list of tables (one table per EVALUATE result set), each preserving its own schema. Arrow payloads are auto-detected and parsed when supported.",
     Documentation.Examples = {
         [
             Code = "=PBIRESTAPIComm.ExecuteDaxQueries(""xxx-xxxx-abcd..."",""EVALUATE VALUES('Product'[Category])"",null,""en-US"")",
@@ -1623,7 +1628,7 @@ ExecuteDaxQueries = (
     let
         doArgumentsExist = if(datasetId <> null and datasetId <> "") and (query <> null and query <> "") then true else false,
         result = if doArgumentsExist = false then
-                    #table(type table [response = text],{{"Please provide datasetId and query arguments"}})
+                    error Error.Record("PBIRESTAPIComm.ExecuteDaxQueries", "Please provide datasetId and query arguments")
                  else
                     let
                         payload = BuildExecuteDaxRequestPayload(query, applicationContext, culture, customData, effectiveUsername, memoryLimit, queryTimeout, resultSetRowCountLimit, roles, schemaOnly),
@@ -1633,7 +1638,7 @@ ExecuteDaxQueries = (
                             Content = Json.FromValue(payload),
                             ManualStatusHandling = {200, 400}
                         ],
-                        postResult = PostExecuteDax(params)
+                        postResult = PostExecuteDaxList(params)
                     in
                         postResult
     in
@@ -1674,9 +1679,9 @@ ExecuteDaxQueriesInGroupType = type function (
     optional resultSetRowCountLimit as number,
     optional roles as list,
     optional schemaOnly as logical
-) as table meta [
+) as list meta [
     Documentation.Name = "PBIRESTAPIComm.ExecuteDaxQueriesInGroup",
-    Documentation.LongDescription = "Executes DAX queries in a workspace and returns a native table. Arrow payloads are auto-detected and parsed when supported.",
+    Documentation.LongDescription = "Executes DAX queries in a workspace and returns a list of tables (one table per EVALUATE result set), each preserving its own schema. Arrow payloads are auto-detected and parsed when supported.",
     Documentation.Examples = {
         [
             Code = "=PBIRESTAPIComm.ExecuteDaxQueriesInGroup(""xxx-xxxx-group..."",""xxx-xxxx-dataset..."",""EVALUATE VALUES('Product'[Category])"")",
@@ -1702,7 +1707,7 @@ ExecuteDaxQueriesInGroup = (
     let
         doArgumentsExist = if(groupId <> null and groupId <> "") and (datasetId <> null and datasetId <> "") and (query <> null and query <> "") then true else false,
         result = if doArgumentsExist = false then
-                    #table(type table [response = text],{{"Please provide groupId, datasetId and query arguments"}})
+                    error Error.Record("PBIRESTAPIComm.ExecuteDaxQueriesInGroup", "Please provide groupId, datasetId and query arguments")
                  else
                     let
                         payload = BuildExecuteDaxRequestPayload(query, applicationContext, culture, customData, effectiveUsername, memoryLimit, queryTimeout, resultSetRowCountLimit, roles, schemaOnly),
@@ -1712,7 +1717,7 @@ ExecuteDaxQueriesInGroup = (
                             Content = Json.FromValue(payload),
                             ManualStatusHandling = {200, 400}
                         ],
-                        postResult = PostExecuteDax(params)
+                        postResult = PostExecuteDaxList(params)
                     in
                         postResult
     in
@@ -3024,35 +3029,69 @@ PostExecuteDax = (params as record) as table =>
     in
         result;
 
-ExecuteDaxJsonToTable = (response as binary) as table =>
+PostExecuteDaxList = (params as record) as list =>
+    let
+        webSource = Web.Contents(
+            "https://api.powerbi.com",
+            params
+        ),
+        headers = try Value.Metadata(webSource)[Headers] otherwise [],
+        buffered = Binary.Buffer(webSource),
+        result = ExecuteDaxResponseAsTableList(buffered, headers)
+    in
+        result;
+
+ExecuteDaxJsonToTableList = (response as binary) as list =>
     let
         parseTry = try Json.Document(response),
         result =
             if parseTry[HasError] then
-                #table(type table [response = text], {{Text.FromBinary(response)}})
+                { #table(type table [response = text], {{Text.FromBinary(response)}}) }
             else
                 let
                     payload = parseTry[Value],
                     root = if Value.Is(payload, type record) then payload else [],
                     resultsList = if Record.HasFields(root, "results") and Value.Is(root[results], type list) then root[results] else {},
-                    firstResult = if List.Count(resultsList) > 0 and Value.Is(resultsList{0}, type record) then resultsList{0} else [],
-                    tablesList = if Record.HasFields(firstResult, "tables") and Value.Is(firstResult[tables], type list) then firstResult[tables] else {},
-                    firstTable = if List.Count(tablesList) > 0 and Value.Is(tablesList{0}, type record) then tablesList{0} else [],
-                    rowsList = if Record.HasFields(firstTable, "rows") and Value.Is(firstTable[rows], type list) then firstTable[rows] else {},
-                    columnsMeta = if Record.HasFields(firstTable, "columns") and Value.Is(firstTable[columns], type list) then firstTable[columns] else {},
-                    columnsRaw = List.Transform(columnsMeta, each if Value.Is(_, type record) and Record.HasFields(_, "name") then Text.From(Record.Field(_, "name")) else null),
-                    columnNames = List.RemoveNulls(columnsRaw),
-                    tableResult =
-                        if List.Count(rowsList) > 0 and Value.Is(rowsList{0}, type record) then
-                            if List.Count(columnNames) > 0
-                                then Table.FromRecords(rowsList, columnNames, MissingField.UseNull)
-                                else Table.FromRecords(rowsList)
-                        else if List.Count(columnNames) > 0 then
-                            #table(columnNames, {})
+                    tablesByResult =
+                        List.Transform(
+                            resultsList,
+                            each
+                                if Value.Is(_, type record) and Record.HasFields(_, "tables") and Value.Is(_[tables], type list)
+                                    then _[tables]
+                                    else {}
+                        ),
+                    allTables = if List.Count(tablesByResult) = 0 then {} else List.Combine(tablesByResult),
+                    toTable = (tableNode as any) as table =>
+                        let
+                            tableRecord = if Value.Is(tableNode, type record) then tableNode else [],
+                            rowsList = if Record.HasFields(tableRecord, "rows") and Value.Is(tableRecord[rows], type list) then tableRecord[rows] else {},
+                            columnsMeta = if Record.HasFields(tableRecord, "columns") and Value.Is(tableRecord[columns], type list) then tableRecord[columns] else {},
+                            columnsRaw = List.Transform(columnsMeta, each if Value.Is(_, type record) and Record.HasFields(_, "name") then Text.From(Record.Field(_, "name")) else null),
+                            columnNames = List.RemoveNulls(columnsRaw)
+                        in
+                            if List.Count(rowsList) > 0 and Value.Is(rowsList{0}, type record) then
+                                if List.Count(columnNames) > 0
+                                    then Table.FromRecords(rowsList, columnNames, MissingField.UseNull)
+                                    else Table.FromRecords(rowsList)
+                            else if List.Count(columnNames) > 0 then
+                                #table(columnNames, {})
+                            else
+                                #table(type table [], {}),
+                    parsedTables = List.Transform(allTables, each toTable(_)),
+                    listResult =
+                        if List.Count(parsedTables) = 0 then
+                            { #table(type table [response = text], {{Text.FromBinary(response)}}) }
                         else
-                            #table(type table [response = text], {{Text.FromBinary(response)}})
+                            parsedTables
                 in
-                    tableResult
+                    listResult
+    in
+        result;
+
+ExecuteDaxJsonToTable = (response as binary) as table =>
+    let
+        tables = ExecuteDaxJsonToTableList(response),
+        result = if List.Count(tables) = 1 then tables{0} else Table.Combine(tables)
     in
         result;
 
@@ -3071,6 +3110,15 @@ ExecuteDaxResponseAsTable = (response as binary, optional headers as nullable re
         result = if responseKind = "Arrow"
                     then ExecuteDaxParseArrowResponse(response)
                     else ExecuteDaxParseJsonResponse(response)
+    in
+        result;
+
+ExecuteDaxResponseAsTableList = (response as binary, optional headers as nullable record) as list =>
+    let
+        responseKind = ExecuteDaxDetectResponseKind(response, headers),
+        result = if responseKind = "Arrow"
+                    then ArrowFromBinaryTables(response)
+                    else ExecuteDaxJsonToTableList(response)
     in
         result;
 
@@ -4359,7 +4407,7 @@ ArrowResolvePendingDictionaryBatches = (schema as list, pending as list, diction
     in
         resolve(pending, dictionaries);
 
-ArrowParseStream = (payload as binary) as table =>
+ArrowParseStreamTables = (payload as binary) as list =>
     let
         length = Binary.Length(payload),
         initial = [Offset = 0, Schema = null, Dictionaries = [], PendingDictionaryBatches = {}, Tables = {}],
@@ -4421,7 +4469,7 @@ ArrowParseStream = (payload as binary) as table =>
                             else if _bodyLengthCheck and _bodyRangeCheck and _bodyRangeCheckUnaligned
                                 then Binary.Range(payload, bodyStartUnaligned, bodyLength)
                                 else #binary({}),
-                        nextOffset = if _headerCheck = null then length else if isEnd then length else ArrowAlign8(bodyStart + bodyLength),
+                        nextOffset = if _headerCheck = null then length else if isEnd then metadataStart else ArrowAlign8(bodyStart + bodyLength),
                         nextSchema = if parsed[HeaderType] = 1
                             then
                                 let
@@ -4582,18 +4630,25 @@ ArrowParseStream = (payload as binary) as table =>
                                         else [Tables]
                             else [Tables]
                     in
-                        [Offset = nextOffset, Schema = nextSchema, Dictionaries = nextDictionaries, PendingDictionaryBatches = nextPendingDictionaryBatches, Tables = nextTables],
+                        [Offset = nextOffset, Schema = if isEnd then null else nextSchema, Dictionaries = if isEnd then [] else nextDictionaries, PendingDictionaryBatches = if isEnd then {} else nextPendingDictionaryBatches, Tables = nextTables],
                 each _
             )
         ),
-        result = if List.Count(final[Tables]) = 0
-            then #table(type table [], {})
-            else if List.Count(final[Tables]) = 1 then final[Tables]{0}
-            else Table.Combine(final[Tables])
+        result = final[Tables]
     in
         result;
 
-ArrowFromBinary = (payload as binary) as table =>
+ArrowParseStream = (payload as binary) as table =>
+    let
+        tables = ArrowParseStreamTables(payload),
+        result = if List.Count(tables) = 0
+            then #table(type table [], {})
+            else if List.Count(tables) = 1 then tables{0}
+            else Table.Combine(tables)
+    in
+        result;
+
+ArrowFromBinaryTables = (payload as binary) as list =>
     let
         buffered = Binary.Buffer(payload),
         length = Binary.Length(buffered),
@@ -4611,7 +4666,7 @@ ArrowFromBinary = (payload as binary) as table =>
         // `true` or a thrown ArrowError, but M is lazy: unless referenced here they
         // would never run, silently accepting non-Arrow or compressed payloads.
         parsed = if _isArrowPayload and _compressionCheck
-            then try ArrowParseStream(buffered)
+            then try ArrowParseStreamTables(buffered)
             else null,
         result = if parsed[HasError]
             then
@@ -4622,6 +4677,16 @@ ArrowFromBinary = (payload as binary) as table =>
                 in
                     ArrowError("Arrow parse failed", "Arrow.Stream", "Parse", [Length = length, HeadHex = headHex, TailHex = tailHex, InnerReason = innerReason, InnerMessage = innerMessage, InnerDetail = innerDetail])
             else parsed[Value]
+    in
+        result;
+
+ArrowFromBinary = (payload as binary) as table =>
+    let
+        tables = ArrowFromBinaryTables(payload),
+        result = if List.Count(tables) = 0
+            then #table(type table [], {})
+            else if List.Count(tables) = 1 then tables{0}
+            else Table.Combine(tables)
     in
         result;
 

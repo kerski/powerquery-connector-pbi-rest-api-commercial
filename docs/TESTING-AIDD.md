@@ -122,3 +122,78 @@ Once verified, you can use the AIDD agent for all development workflows:
 - Changelog and commit management
 
 See [COPILOT-QUICKSTART.md](COPILOT-QUICKSTART.md) for complete usage guide.
+
+## Phase 11 Multi-EVALUATE Parity Commands
+
+Use these commands to validate cross-tool parity for the DateTime two-EVALUATE probe.
+
+1. PowerShell canonical probe:
+```powershell
+./CI/Scripts/Probe-MultiEvaluate.ps1 -VariablesPath .\CI\Scripts\variables.test.json -PayloadMode connector -QueryFile .\tests\fixtures\multi_evaluate_datetime_probe.dax -OutputPath .\artifacts\multi-eval-powershell-canonical.json
+```
+
+2. Python canonical probe (with token from Power BI PowerShell):
+```powershell
+./CI/Scripts/Run-MultiEvalPythonProbe.ps1 -PayloadMode connector -ExpectedStreams 2 -OutputPath .\artifacts\multi-eval-python-canonical.json
+```
+
+3. Compare PowerShell vs Python artifacts:
+```powershell
+.\.venv\Scripts\python.exe CI\Scripts\Compare-MultiEvaluateParity.py --powershell artifacts\multi-eval-powershell-canonical.json --python artifacts\multi-eval-python-canonical.json --output artifacts\multi-eval-parity-compare.json
+```
+
+4. Targeted Power Query test:
+```powershell
+./CI/Scripts/Run-PQTests.ps1 -Compile $false -TestFileName PBIRESTAPIComm.tests.multievaluate.datetimeprobe.query.pq
+```
+
+## Proving Multiple EVALUATE Statements Are Supported
+
+The strongest connector-level proof is this test, which covers many same-schema
+result sets AND result sets with different schemas:
+
+```powershell
+./CI/Scripts/Run-PQTests.ps1 -Compile $true -TestFileName PBIRESTAPIComm.tests.multievaluate.heterogeneous.query.pq
+```
+
+It asserts:
+- 5 same-schema EVALUATE statements return a list of 5 single-row tables (one per result set).
+- 3 different-schema EVALUATE statements return a list of 3 tables, each keeping its OWN schema (no column union).
+
+If this test passes but Power BI Desktop still shows only the first table, the
+loaded connector is stale/cached — not the source.
+
+## Power BI Desktop Verification Recipe (stale-mez check)
+
+1. Confirm which build Desktop actually loaded. In a blank query, enter:
+   ```
+   = PBIRESTAPIComm.Version
+   ```
+   The latest source build returns `2.2.0`. Any other value means the loaded
+   `.mez` is stale.
+
+2. Replace the connector and clear caches:
+   - Close Power BI Desktop.
+   - Manually copy the freshly built `bin\AnyCPU\Debug\powerquery-connector-pbi-rest-api-commercial.mez`
+     to your Power BI Desktop Custom Connectors folder (typically under OneDrive-redirected Documents; remove older copies).
+   - Reopen Power BI Desktop.
+
+3. Reproduce multiple EVALUATE in a blank query (replace the IDs):
+   ```
+   = PBIRESTAPIComm.ExecuteDaxQueriesInGroup(
+       "<workspace-id>",
+       "<dataset-id>",
+       "EVALUATE ROW(""Alpha"", 1)#(lf)EVALUATE ROW(""Beta"", 2)#(lf)EVALUATE ROW(""Gamma"", 3)"
+   )
+   ```
+   Expected: a **list of 3 tables**, one per EVALUATE result set — item 0 has
+   column `[Alpha]`, item 1 has `[Beta]`, item 2 has `[Gamma]`. Each item keeps
+   its own schema (no column union). Expand an item to see its rows.
+
+4. If you still see unexpected behavior with a confirmed `2.2.0` build,
+   capture the raw server response to determine whether the server itself
+   returned unexpected content:
+   ```powershell
+   ./CI/Scripts/Capture-ArrowResponse.ps1
+   ```
+
