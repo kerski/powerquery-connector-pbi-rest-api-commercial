@@ -29,7 +29,7 @@ shared MyExtension.UnitTest =
     DateDimQuery = "EVALUATE TOPN(10,DateDim,DateDim[Date],DESC)",
     
     // Execute query through connector's Arrow IPC parser
-    ExecuteDaxQueriesResult = ExecuteDaxQueries(DatasetTestID, DateDimQuery),
+    ExecuteDaxQueriesResult = ExecuteDaxQueries(DatasetTestID, DateDimQuery){0},
     
     // Verify it's a table
     IsTable = Value.Is(ExecuteDaxQueriesResult, type table),

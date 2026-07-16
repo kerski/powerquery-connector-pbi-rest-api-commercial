@@ -6,9 +6,21 @@ model Model
 		legacyRedirects
 		returnErrorValuesAsNull
 
+queryGroup pql-assert-demo
+
+	annotation PBI_QueryGroupOrder = 0
+
+queryGroup Parameters
+
+	annotation PBI_QueryGroupOrder = 1
+
+queryGroup Functions
+
+	annotation PBI_QueryGroupOrder = 2
+
 annotation __PBI_TimeIntelligenceEnabled = 0
 
-annotation PBI_QueryOrder = ["Function Catalog","ExecuteQueryInGroup","ExecuteDaxQueriesInGroup","GetGroups","GetDatasetsInGroup","Workspaces","Semantic Models","Query1","Query2","Query3","Semantic Models - ExecuteQueryInGroup","Top10-DateDim-Query"]
+annotation PBI_QueryOrder = ["Function Catalog","PBIRESTAPIComm Version","ExecuteQueryInGroup","ExecuteDaxQueriesInGroup","GetGroups","GetDatasetsInGroup","Workspaces","Semantic Models","Query1","Query2","Query3","Semantic Models - ExecuteQueryInGroup","Top10-DateDim-Query","pql-assert-workspace","pql-assert-dataset"]
 
 annotation PBI_ProTooling = ["DaxQueryView_Desktop","DevMode"]
 

@@ -201,15 +201,19 @@ $RelQueryFilePaths = @(
     ".\\PBIRESTAPIComm.tests.dashboards.query.pq",
     ".\\PBIRESTAPIComm.tests.dataflows.query.pq",
     ".\\PBIRESTAPIComm.tests.datasets.nofallback.query.pq",
-    ".\\PBIRESTAPIComm.tests.datasets.parity.query.pq",
     ".\\PBIRESTAPIComm.tests.datasets.query.pq",
+    ".\\PBIRESTAPIComm.tests.multievaluate.query.pq",
+    ".\\PBIRESTAPIComm.tests.multievaluate.datetimeprobe.query.pq",
+    ".\\PBIRESTAPIComm.tests.multievaluate.heterogeneous.query.pq",
+    ".\\PBIRESTAPIComm.tests.version.query.pq",
     ".\\PBIRESTAPIComm.tests.reports.query.pq",
     ".\\PBIRESTAPIComm.tests.groups.query.pq",
     ".\\PBIRESTAPIComm.tests.pipelines.query.pq",
     ".\\PBIRESTAPIComm.tests.scorecards.query.pq",
     ".\\PBIRESTAPIComm.tests.proof.query.pq",
     ".\\PBIRESTAPIComm.tests.showdata.query.pq",
-    ".\\PBIRESTAPIComm.tests.connector.proof.query.pq"
+    ".\\PBIRESTAPIComm.tests.connector.proof.query.pq",
+    ".\\PBIRESTAPIComm.tests.datasets.parity.query.pq"
 )
 
 $ConnectorSourcePath = (Resolve-Path -Path $RelConnectorSourcePath).Path
