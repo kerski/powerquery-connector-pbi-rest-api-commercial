@@ -1,0 +1,2 @@
+EVALUATE ROW("ProbeSet", "A", "NowUtc", UTCNOW())
+EVALUATE ROW("ProbeSet", "B", "NowUtc", UTCNOW())

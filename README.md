@@ -4,7 +4,7 @@ This Custom Data Connector wraps many of the "Get" endpoints in the Power BI API
 
 Most functions return a JSON body and not a table of data.  This decision was made to provide flexibility in converting the JSON body to tabular data when 1) the API responses are changed by Microsoft or 2) the API responses differ between commercial and sovereign clouds (e.g., GCC, DoD, etc.).
 
-The exceptions are `ExecuteDaxQueries` and `ExecuteDaxQueriesInGroup`, which return a **native Power Query table**. These call the `executeDaxQueries` endpoint, auto-detect Apache Arrow IPC responses, and parse them directly (falling back to JSON parsing only when the response itself is JSON). See [Arrow IPC Support](#arrow-ipc-support-executedaxqueries) and the [call tree](#executedaxqueries-call-tree) below.
+The exceptions are `ExecuteDaxQueries` and `ExecuteDaxQueriesInGroup`, which return a **list of Power Query tables** (one table per EVALUATE result set, each preserving its own schema). These call the `executeDaxQueries` endpoint, auto-detect Apache Arrow IPC responses, and parse them directly (falling back to JSON parsing only when the response itself is JSON). Index the list (e.g. `{0}`) or iterate it. See [Arrow IPC Support](#arrow-ipc-support-executedaxqueries) and the [call tree](#executedaxqueries-call-tree) below.
 
 ## Table of Contents
 
@@ -138,7 +138,7 @@ Not all functions from the Power BI REST API have been implemented.  Here are th
 
 ### Arrow IPC Support (ExecuteDaxQueries)
 
-This connector attempts Arrow IPC detection/parsing for `ExecuteDaxQueries` and `ExecuteDaxQueriesInGroup` responses and returns native Power Query tables.
+This connector attempts Arrow IPC detection/parsing for `ExecuteDaxQueries` and `ExecuteDaxQueriesInGroup` responses and returns a list of Power Query tables (one per EVALUATE result set).
 
 Supported and validated today:
 
@@ -176,20 +176,20 @@ Both `ExecuteDaxQueries` and `ExecuteDaxQueriesInGroup` share the same request/r
 flowchart TD
     A["ExecuteDaxQueries(datasetId, query, ...)"] --> P
     B["ExecuteDaxQueriesInGroup(groupId, datasetId, query, ...)"] --> P
-    P["BuildExecuteDaxRequestPayload<br/>(drops null options)"] --> PD["PostExecuteDax(params)"]
+    P["BuildExecuteDaxRequestPayload<br/>(drops null options)"] --> PD["PostExecuteDaxList(params)"]
     PD --> WC["Web.Contents → .../executeDaxQueries<br/>Accept: arrow.stream, arrow.file, octet-stream, json"]
     WC --> BB["Binary.Buffer(response)"]
-    BB --> RT["ExecuteDaxResponseAsTable(bytes, headers)"]
+    BB --> RT["ExecuteDaxResponseAsTableList(bytes, headers)"]
     RT --> DK["ExecuteDaxDetectResponseKind<br/>ArrowDetectionIsArrowResponse:<br/>content-type or Arrow magic bytes"]
-    DK -->|Arrow| AR["ExecuteDaxParseArrowResponse<br/>→ ArrowFromBinary"]
-    DK -->|JSON| JS["ExecuteDaxParseJsonResponse<br/>→ ExecuteDaxJsonToTable"]
-    AR --> PS["ArrowParseStream"]
+    DK -->|Arrow| AR["ArrowFromBinaryTables"]
+    DK -->|JSON| JS["ExecuteDaxJsonToTableList"]
+    AR --> PS["ArrowParseStreamTables"]
     PS --> PM["ArrowParseMessage<br/>Schema / DictionaryBatch / RecordBatch"]
     PS --> RDB["ArrowResolvePendingDictionaryBatches<br/>→ ArrowParseDictionaryBatch"]
     PS --> RB["ArrowRecordBatchToTable"]
     RB --> DCB["ArrowDecompressBatchBuffers<br/>LZ4_FRAME per buffer (codec 0)"]
     RB --> DEC["ArrowDecodeColumn<br/>(per column, dictionary-aware)"]
-    AR --> T["native Power Query table"]
+    AR --> T["list of Power Query tables<br/>(one per EVALUATE result set)"]
     JS --> T
 ```
 

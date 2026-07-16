@@ -66,6 +66,33 @@ shared MyExtension.UnitTest =
         ]
     ),
 
+    MultiTableJsonPayload = Json.FromValue(
+        [
+            results = {
+                [
+                    tables = {
+                        [
+                            columns = {[name = "A"], [name = "B"]},
+                            rows = {[A = 1, B = "first"]}
+                        ],
+                        [
+                            columns = {[name = "A"], [name = "B"]},
+                            rows = {[A = 2, B = "second"]}
+                        ]
+                    }
+                ],
+                [
+                    tables = {
+                        [
+                            columns = {[name = "A"], [name = "B"]},
+                            rows = {[A = 3, B = "third"]}
+                        ]
+                    }
+                ]
+            }
+        ]
+    ),
+
     MalformedArrowPayload = Binary.Combine({Binary.FromText("4152524f5731", BinaryEncoding.Hex), Text.ToBinary("broken")}),
 
     facts =
@@ -106,6 +133,21 @@ shared MyExtension.UnitTest =
             "NoFallback Contract NonArrow JSON Should Preserve Ordered Column Names",
             {"A", "B"},
             () => Table.ColumnNames(ExecuteDaxResponseAsTable(NonArrowJsonPayload, JsonHeaders))
+        ),
+        Fact(
+            "NoFallback Contract Json Parser Should Combine Multiple Tables Across Results",
+            3,
+            () => Table.RowCount(ExecuteDaxJsonToTable(MultiTableJsonPayload))
+        ),
+        Fact(
+            "NoFallback Contract ResponseAsTable Should Combine Multiple Tables Across Results",
+            3,
+            () => Table.RowCount(ExecuteDaxResponseAsTable(MultiTableJsonPayload, JsonHeaders))
+        ),
+        Fact(
+            "NoFallback Contract Combined MultiTable JSON Should Include Last Table Row",
+            1,
+            () => Table.RowCount(Table.SelectRows(ExecuteDaxResponseAsTable(MultiTableJsonPayload, JsonHeaders), each [A] = 3 and [B] = "third"))
         ),
 
         Fact(

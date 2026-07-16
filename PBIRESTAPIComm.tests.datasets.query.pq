@@ -48,9 +48,9 @@ shared MyExtension.UnitTest =
     TopN11DateDimQuery = "EVALUATE TOPN(11,DateDim,DateDim[Date],DESC)",
     GetExecuteQueryTopNJson = () => Json.Document(ExecuteQueryInGroup(GroupTestID, DatasetTestID, TopNDateDimQuery)),
     GetExecuteQueryTopNRows = () => GetExecuteQueryTopNJson()[results]{0}[tables]{0}[rows],
-    GetExecuteDaxTopN1Rows = () => Table.ToRows(ExecuteDaxQueriesInGroup(GroupTestID, DatasetTestID, TopN1DateDimQuery)),
-    GetExecuteDaxTopNRows = () => Table.ToRows(ExecuteDaxQueriesInGroup(GroupTestID, DatasetTestID, TopNDateDimQuery)),
-    GetExecuteDaxTopN11Rows = () => Table.ToRows(ExecuteDaxQueriesInGroup(GroupTestID, DatasetTestID, TopN11DateDimQuery)),
+    GetExecuteDaxTopN1Rows = () => Table.ToRows(ExecuteDaxQueriesInGroup(GroupTestID, DatasetTestID, TopN1DateDimQuery){0}),
+    GetExecuteDaxTopNRows = () => Table.ToRows(ExecuteDaxQueriesInGroup(GroupTestID, DatasetTestID, TopNDateDimQuery){0}),
+    GetExecuteDaxTopN11Rows = () => Table.ToRows(ExecuteDaxQueriesInGroup(GroupTestID, DatasetTestID, TopN11DateDimQuery){0}),
     ExpectedTopNRows = {
         {"973", "2020-10-01T00:00:00", "Oct-2020", "202010", "Oct-20"},
         {"975", "2020-12-01T00:00:00", "Dec-2020", "202012", "Dec-20"},

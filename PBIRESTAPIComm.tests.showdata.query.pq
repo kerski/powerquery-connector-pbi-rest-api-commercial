@@ -23,7 +23,7 @@ shared MyExtension.UnitTest =
     ExecuteQueryTable = Table.FromRecords(ExecuteQueryRows),
     
     // Get Arrow candidate results
-    ExecuteDaxQueriesTable = ExecuteDaxQueries(DatasetTestID, DateDimQuery),
+    ExecuteDaxQueriesTable = ExecuteDaxQueries(DatasetTestID, DateDimQuery){0},
     
     // Create side-by-side comparison
     OutputRecord = [

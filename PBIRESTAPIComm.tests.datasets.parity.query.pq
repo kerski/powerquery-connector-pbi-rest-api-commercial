@@ -19,6 +19,7 @@ shared MyExtension.UnitTest =
     GroupTestID = Environment.FeatureSwitch("GroupTestID"),
     DatasetTestID = Environment.FeatureSwitch("DatasetTestID"),
     RunLiveParity = Text.Lower(Text.From(Environment.FeatureSwitch("RunLiveParity"))) = "true",
+    RunHeavyParity = Text.Lower(Text.From(try Environment.FeatureSwitch("RunHeavyParity") otherwise "false")) = "true",
 
     _GetFunction = (_func_key as text) =>
         let
@@ -96,10 +97,10 @@ shared MyExtension.UnitTest =
         Json.Document(ExecuteQuery(DatasetTestID, query))[results]{0}[tables]{0}[rows],
 
     GetExecuteDaxTableInGroup = (query as text) as table =>
-        ExecuteDaxQueriesInGroup(GroupTestID, DatasetTestID, query),
+        ExecuteDaxQueriesInGroup(GroupTestID, DatasetTestID, query){0},
 
     GetExecuteDaxTable = (query as text) as table =>
-        ExecuteDaxQueries(DatasetTestID, query),
+        ExecuteDaxQueries(DatasetTestID, query){0},
 
     GetExecuteQueryColumns = (rows as list) as list =>
         // Union all field names across rows preserving first-seen order. This must
@@ -282,7 +283,7 @@ shared MyExtension.UnitTest =
         Fact("CanonicalizeCell Should Normalize Numbers With Rounding Policy", "3.141592654", () => CanonicalizeCell(3.1415926536))
     },
 
-    parityFacts =
+    coreParityFacts =
     {
 
         Fact(
@@ -396,16 +397,6 @@ shared MyExtension.UnitTest =
             () => AssertCanonicalParity("WideComputedColumns", GetExecuteQueryCanonical(WideComputedColumnsQuery), GetExecuteDaxCanonical(WideComputedColumnsQuery), "ExecuteQuery vs ExecuteDaxQueries")
         ),
         Fact(
-            "Arrow Parity DateDim Bounded Projection Should Match ExecuteQueryInGroup",
-            true,
-            () => AssertCanonicalParity("DateDimBoundedProjection", GetExecuteQueryCanonicalInGroup(DateDimBoundedProjectionQuery), GetExecuteDaxCanonicalInGroup(DateDimBoundedProjectionQuery), "ExecuteQueryInGroup vs ExecuteDaxQueriesInGroup")
-        ),
-        Fact(
-            "Arrow Parity DateDim Bounded Projection Should Match ExecuteQuery",
-            true,
-            () => AssertCanonicalParity("DateDimBoundedProjection", GetExecuteQueryCanonical(DateDimBoundedProjectionQuery), GetExecuteDaxCanonical(DateDimBoundedProjectionQuery), "ExecuteQuery vs ExecuteDaxQueries")
-        ),
-        Fact(
             "Arrow Parity TOPN10 MarvelFact Should Match ExecuteQueryInGroup",
             true,
             () => AssertCanonicalParity("TopN10MarvelFact", GetExecuteQueryCanonicalInGroup(TopN10MarvelFactQuery), GetExecuteDaxCanonicalInGroup(TopN10MarvelFactQuery), "ExecuteQueryInGroup vs ExecuteDaxQueriesInGroup")
@@ -436,16 +427,6 @@ shared MyExtension.UnitTest =
             () => AssertCanonicalParity("TopN10EyeDim", GetExecuteQueryCanonical(TopN10EyeDimQuery), GetExecuteDaxCanonical(TopN10EyeDimQuery), "ExecuteQuery vs ExecuteDaxQueries")
         ),
         Fact(
-            "Arrow Parity Large Multi-Batch Stream Should Match ExecuteQueryInGroup",
-            true,
-            () => AssertCanonicalParity("LargeMultiBatch", GetExecuteQueryCanonicalInGroup(LargeMultiBatchQuery), GetExecuteDaxCanonicalInGroup(LargeMultiBatchQuery), "ExecuteQueryInGroup vs ExecuteDaxQueriesInGroup")
-        ),
-        Fact(
-            "Arrow Parity Large Multi-Batch Stream Should Match ExecuteQuery",
-            true,
-            () => AssertCanonicalParity("LargeMultiBatch", GetExecuteQueryCanonical(LargeMultiBatchQuery), GetExecuteDaxCanonical(LargeMultiBatchQuery), "ExecuteQuery vs ExecuteDaxQueries")
-        ),
-        Fact(
             "Arrow Parity Unicode Text Should Match ExecuteQueryInGroup",
             true,
             () => AssertCanonicalParity("UnicodeText", GetExecuteQueryCanonicalInGroup(UnicodeTextQuery), GetExecuteDaxCanonicalInGroup(UnicodeTextQuery), "ExecuteQueryInGroup vs ExecuteDaxQueriesInGroup")
@@ -466,16 +447,6 @@ shared MyExtension.UnitTest =
             () => AssertCanonicalParity("MixedNullBitmap", GetExecuteQueryCanonical(MixedNullBitmapQuery), GetExecuteDaxCanonical(MixedNullBitmapQuery), "ExecuteQuery vs ExecuteDaxQueries")
         ),
         Fact(
-            "Arrow Parity Large Dictionary-Encoded Stream Should Match ExecuteQueryInGroup",
-            true,
-            () => AssertCanonicalParity("LargeDictionaryEncoded", GetExecuteQueryCanonicalInGroup(LargeDictionaryEncodedQuery), GetExecuteDaxCanonicalInGroup(LargeDictionaryEncodedQuery), "ExecuteQueryInGroup vs ExecuteDaxQueriesInGroup")
-        ),
-        Fact(
-            "Arrow Parity Large Dictionary-Encoded Stream Should Match ExecuteQuery",
-            true,
-            () => AssertCanonicalParity("LargeDictionaryEncoded", GetExecuteQueryCanonical(LargeDictionaryEncodedQuery), GetExecuteDaxCanonical(LargeDictionaryEncodedQuery), "ExecuteQuery vs ExecuteDaxQueries")
-        ),
-        Fact(
             "Arrow Parity Extended Scalars Should Match ExecuteQueryInGroup",
             true,
             () => AssertCanonicalParity("ExtendedScalars", GetExecuteQueryCanonicalInGroup(ExtendedScalarQuery), GetExecuteDaxCanonicalInGroup(ExtendedScalarQuery), "ExecuteQueryInGroup vs ExecuteDaxQueriesInGroup")
@@ -484,6 +455,40 @@ shared MyExtension.UnitTest =
             "Arrow Parity Extended Scalars Should Match ExecuteQuery",
             true,
             () => AssertCanonicalParity("ExtendedScalars", GetExecuteQueryCanonical(ExtendedScalarQuery), GetExecuteDaxCanonical(ExtendedScalarQuery), "ExecuteQuery vs ExecuteDaxQueries")
+        )
+    },
+
+    heavyParityFacts =
+    {
+        Fact(
+            "Arrow Parity DateDim Bounded Projection Should Match ExecuteQueryInGroup",
+            true,
+            () => AssertCanonicalParity("DateDimBoundedProjection", GetExecuteQueryCanonicalInGroup(DateDimBoundedProjectionQuery), GetExecuteDaxCanonicalInGroup(DateDimBoundedProjectionQuery), "ExecuteQueryInGroup vs ExecuteDaxQueriesInGroup")
+        ),
+        Fact(
+            "Arrow Parity DateDim Bounded Projection Should Match ExecuteQuery",
+            true,
+            () => AssertCanonicalParity("DateDimBoundedProjection", GetExecuteQueryCanonical(DateDimBoundedProjectionQuery), GetExecuteDaxCanonical(DateDimBoundedProjectionQuery), "ExecuteQuery vs ExecuteDaxQueries")
+        ),
+        Fact(
+            "Arrow Parity Large Multi-Batch Stream Should Match ExecuteQueryInGroup",
+            true,
+            () => AssertCanonicalParity("LargeMultiBatch", GetExecuteQueryCanonicalInGroup(LargeMultiBatchQuery), GetExecuteDaxCanonicalInGroup(LargeMultiBatchQuery), "ExecuteQueryInGroup vs ExecuteDaxQueriesInGroup")
+        ),
+        Fact(
+            "Arrow Parity Large Multi-Batch Stream Should Match ExecuteQuery",
+            true,
+            () => AssertCanonicalParity("LargeMultiBatch", GetExecuteQueryCanonical(LargeMultiBatchQuery), GetExecuteDaxCanonical(LargeMultiBatchQuery), "ExecuteQuery vs ExecuteDaxQueries")
+        ),
+        Fact(
+            "Arrow Parity Large Dictionary-Encoded Stream Should Match ExecuteQueryInGroup",
+            true,
+            () => AssertCanonicalParity("LargeDictionaryEncoded", GetExecuteQueryCanonicalInGroup(LargeDictionaryEncodedQuery), GetExecuteDaxCanonicalInGroup(LargeDictionaryEncodedQuery), "ExecuteQueryInGroup vs ExecuteDaxQueriesInGroup")
+        ),
+        Fact(
+            "Arrow Parity Large Dictionary-Encoded Stream Should Match ExecuteQuery",
+            true,
+            () => AssertCanonicalParity("LargeDictionaryEncoded", GetExecuteQueryCanonical(LargeDictionaryEncodedQuery), GetExecuteDaxCanonical(LargeDictionaryEncodedQuery), "ExecuteQuery vs ExecuteDaxQueries")
         )
     },
 
@@ -575,6 +580,7 @@ shared MyExtension.UnitTest =
         )
     },
 
+    parityFacts = if RunHeavyParity then List.Combine({coreParityFacts, heavyParityFacts}) else coreParityFacts,
     facts = if RunLiveParity then List.Combine({helperFacts, mismatchReportingFacts, parityFacts}) else List.Combine({helperFacts, mismatchReportingFacts, {Fact("RunLiveParity Must Be True For Live Parity Assertions", true, RunLiveParity)}}),
 
     results = Table.ReverseRows(Table.FromRecords(facts)),

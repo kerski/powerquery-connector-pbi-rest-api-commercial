@@ -30,60 +30,70 @@ shared MyExtension.UnitTest =
 
     // Multi-EVALUATE query: two EVALUATE statements in a single query string.
     // The executeDaxQueries endpoint returns one Arrow IPC stream per EVALUATE
-    // result, concatenated end-to-end.  ArrowParseStream continues past each
-    // EOS marker and Table.Combine merges the result tables.
-    //
-    // Combined table shape:
-    //   5 rows from TOPN(5, DateDim, ..., ASC) — DateDim columns present, [Count] null
-    //   1 row  from ROW("Count", COUNTROWS(DateDim)) — [Count] present, DateDim cols null
-    //   Total: 6 rows
+    // result. The connector returns a LIST of tables, one per result set, each
+    // preserving its own schema:
+    //   item 0 = 5 rows from TOPN(5, DateDim, ..., ASC)
+    //   item 1 = 1 row  from ROW("Count", COUNTROWS(DateDim))
     MultiEvalQuery = "EVALUATE TOPN(5, DateDim, DateDim[Date], ASC)" & "#(lf)EVALUATE ROW(""Count"", COUNTROWS(DateDim))",
 
     // --- InGroup helpers ---
     GetMultiEvalInGroup = () => ExecuteDaxQueriesInGroup(GroupTestID, DatasetTestID, MultiEvalQuery),
-    GetMultiEvalRowsInGroup = () => Table.ToRows(GetMultiEvalInGroup()),
 
     // --- No-group helpers (My workspace endpoint) ---
     GetMultiEval = () => ExecuteDaxQueries(DatasetTestID, MultiEvalQuery),
-    GetMultiEvalRows = () => Table.ToRows(GetMultiEval()),
 
     facts =
     {
         Fact("ExecuteDaxQueries Should Be a Function", true, Value.Is(ExecuteDaxQueries, Function.Type)),
         Fact("ExecuteDaxQueriesInGroup Should Be a Function", true, Value.Is(ExecuteDaxQueriesInGroup, Function.Type)),
 
-        // --- ExecuteDaxQueriesInGroup multi-evaluate ---
+        // --- ExecuteDaxQueriesInGroup multi-evaluate (list of tables) ---
         Fact(
-            "ExecuteDaxQueriesInGroup Multi-Evaluate Should Return 6 Rows Total (5 TOPN + 1 COUNTROWS)",
-            6,
-            () => List.Count(GetMultiEvalRowsInGroup())
+            "ExecuteDaxQueriesInGroup Multi-Evaluate Should Return a List",
+            true,
+            () => Value.Is(GetMultiEvalInGroup(), type list)
         ),
         Fact(
-            "ExecuteDaxQueriesInGroup Multi-Evaluate Should Return a Table (not an error)",
-            true,
-            () => Value.Is(GetMultiEvalInGroup(), type table)
+            "ExecuteDaxQueriesInGroup Multi-Evaluate Should Return 2 Result Sets",
+            2,
+            () => List.Count(GetMultiEvalInGroup())
         ),
         Fact(
-            "ExecuteDaxQueriesInGroup Multi-Evaluate Combined Table Should Have At Least 1 Column",
+            "ExecuteDaxQueriesInGroup Multi-Evaluate Item 0 Should Be a Table",
             true,
-            () => Table.ColumnCount(GetMultiEvalInGroup()) >= 1
+            () => Value.Is(GetMultiEvalInGroup(){0}, type table)
+        ),
+        Fact(
+            "ExecuteDaxQueriesInGroup Multi-Evaluate Item 0 (TOPN 5) Should Have 5 Rows",
+            5,
+            () => Table.RowCount(GetMultiEvalInGroup(){0})
+        ),
+        Fact(
+            "ExecuteDaxQueriesInGroup Multi-Evaluate Item 1 (COUNTROWS) Should Have 1 Row",
+            1,
+            () => Table.RowCount(GetMultiEvalInGroup(){1})
         ),
 
         // --- ExecuteDaxQueries multi-evaluate (My workspace) ---
         Fact(
-            "ExecuteDaxQueries Multi-Evaluate Should Return 6 Rows Total (5 TOPN + 1 COUNTROWS)",
-            6,
-            () => List.Count(GetMultiEvalRows())
+            "ExecuteDaxQueries Multi-Evaluate Should Return a List",
+            true,
+            () => Value.Is(GetMultiEval(), type list)
         ),
         Fact(
-            "ExecuteDaxQueries Multi-Evaluate Should Return a Table (not an error)",
-            true,
-            () => Value.Is(GetMultiEval(), type table)
+            "ExecuteDaxQueries Multi-Evaluate Should Return 2 Result Sets",
+            2,
+            () => List.Count(GetMultiEval())
         ),
         Fact(
-            "ExecuteDaxQueries Multi-Evaluate Combined Table Should Have At Least 1 Column",
-            true,
-            () => Table.ColumnCount(GetMultiEval()) >= 1
+            "ExecuteDaxQueries Multi-Evaluate Item 0 (TOPN 5) Should Have 5 Rows",
+            5,
+            () => Table.RowCount(GetMultiEval(){0})
+        ),
+        Fact(
+            "ExecuteDaxQueries Multi-Evaluate Item 1 (COUNTROWS) Should Have 1 Row",
+            1,
+            () => Table.RowCount(GetMultiEval(){1})
         )
     },
 
