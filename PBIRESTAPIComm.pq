@@ -1627,9 +1627,6 @@ ExecuteDaxQueries = (
 ) =>
     let
         doArgumentsExist = if(datasetId <> null and datasetId <> "") and (query <> null and query <> "") then true else false,
-        guardCheck = if doArgumentsExist = false then
-                    error Error.Record("PBIRESTAPIComm.ExecuteDaxQueries", "Please provide datasetId and query arguments")
-                 else null,
         payload = BuildExecuteDaxRequestPayload(query, applicationContext, culture, customData, effectiveUsername, memoryLimit, queryTimeout, resultSetRowCountLimit, roles, schemaOnly),
         params = [
             RelativePath = "v1.0/myorg/datasets/" & datasetId & "/executeDaxQueries",
@@ -1637,7 +1634,9 @@ ExecuteDaxQueries = (
             Content = Json.FromValue(payload),
             ManualStatusHandling = {200, 400}
         ],
-        result = PostExecuteDaxList(params)
+        result = if doArgumentsExist = false then
+                    error Error.Record("PBIRESTAPIComm.ExecuteDaxQueries", "Please provide datasetId and query arguments")
+                 else PostExecuteDaxList(params)
     in
         result;
 /*** End ExecuteDaxQueries***/
@@ -1703,9 +1702,6 @@ ExecuteDaxQueriesInGroup = (
 ) =>
     let
         doArgumentsExist = if(groupId <> null and groupId <> "") and (datasetId <> null and datasetId <> "") and (query <> null and query <> "") then true else false,
-        guardCheck = if doArgumentsExist = false then
-                    error Error.Record("PBIRESTAPIComm.ExecuteDaxQueriesInGroup", "Please provide groupId, datasetId and query arguments")
-                 else null,
         payload = BuildExecuteDaxRequestPayload(query, applicationContext, culture, customData, effectiveUsername, memoryLimit, queryTimeout, resultSetRowCountLimit, roles, schemaOnly),
         params = [
             RelativePath = "v1.0/myorg/groups/" & groupId & "/datasets/" & datasetId & "/executeDaxQueries",
@@ -1713,7 +1709,9 @@ ExecuteDaxQueriesInGroup = (
             Content = Json.FromValue(payload),
             ManualStatusHandling = {200, 400}
         ],
-        result = PostExecuteDaxList(params)
+        result = if doArgumentsExist = false then
+                    error Error.Record("PBIRESTAPIComm.ExecuteDaxQueriesInGroup", "Please provide groupId, datasetId and query arguments")
+                 else PostExecuteDaxList(params)
     in
         result;
 /*** End ExecuteDaxQueriesInGroup***/
