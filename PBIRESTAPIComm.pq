@@ -120,7 +120,7 @@ shared PBIRESTAPIComm.ExecuteDaxResponseAsTable = ExecuteDaxResponseAsTable;
 // Queryable build stamp. Reference `PBIRESTAPIComm.Version` in a blank query to
 // confirm which connector build Power BI Desktop actually loaded. If this does
 // not match the latest source version, the loaded .mez is stale/cached.
-shared PBIRESTAPIComm.Version = "2.2.0";
+shared PBIRESTAPIComm.Version = "2.3.0";
 
 /*****************
     APPS
