@@ -175,11 +175,11 @@
 - ✅ All list-shape assertions added: list length = number of EVALUATEs; each item `Value.Is(_, type table)`; per-item column names are the result set's own (no column union across items).
 
 **Docs**:
-- ✅ Update `docs/TESTING-AIDD.md` Desktop snippet and expected output to show a **list of tables** (expand item 0, 1, 2), and note the version `2.2.0`.
+- ✅ Update `docs/TESTING-AIDD.md` Desktop snippet and expected output to show a **list of tables** (expand item 0, 1, 2), and note the version `2.3.0`.
 - ✅ Update `README.md` `ExecuteDax*` description and call-tree notes to reflect list output.
 
 **Decisions (approved 2026-07-16)**:
-1. Version `2.2.0` (minor bump, not semver major) — user preference for smaller increment.
+1. Version `2.3.0` (minor bump, not semver major) — user preference for smaller increment.
 2. Argument-validation / error case: raise a hard error via `error Error.Record(...)`.
 3. Keep `ExecuteDaxResponseAsTable`/`ArrowFromBinary` combined-table helpers internally for existing unit/fixture tests — confirmed.
 
@@ -187,8 +187,8 @@
 - ✅ `ExecuteDaxQueries` and `ExecuteDaxQueriesInGroup` return a list of per-result-set tables, each preserving its own schema.
 - ✅ All affected tests updated and green; new list-shape assertions added (heterogeneous, same-schema, single-EVALUATE, edge cases).
 - ✅ No-fallback guard green; parity suite updated to compare the correct result-set index.
-- ✅ Version bumped to `2.2.0`; `vision.md`, `README.md`, and `docs/TESTING-AIDD.md` updated for the new output shape.
-- ✅ User confirmed list-of-tables output works in Power BI Desktop with fresh `2.2.0` mez.
+- ✅ Version bumped to `2.3.0`; `vision.md`, `README.md`, and `docs/TESTING-AIDD.md` updated for the new output shape.
+- ✅ User confirmed list-of-tables output works in Power BI Desktop with fresh `2.3.0` mez.
 
 ---
 

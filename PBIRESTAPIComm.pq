@@ -9,7 +9,7 @@
     custom connector.  For more information on installing a custom data connector with a gateway
     please see: https://learn.microsoft.com/en-us/power-bi/connect-data/service-gateway-custom-connectors .
 */
-[Version = "2.2.0"]
+[Version = "2.3.0"]
 section PBIRESTAPIComm;
 [
     DataSource.Kind = "PBIRESTAPIComm",
@@ -120,7 +120,7 @@ shared PBIRESTAPIComm.ExecuteDaxResponseAsTable = ExecuteDaxResponseAsTable;
 // Queryable build stamp. Reference `PBIRESTAPIComm.Version` in a blank query to
 // confirm which connector build Power BI Desktop actually loaded. If this does
 // not match the latest source version, the loaded .mez is stale/cached.
-shared PBIRESTAPIComm.Version = "2.2.0";
+shared PBIRESTAPIComm.Version = "2.3.0";
 
 /*****************
     APPS
@@ -1627,20 +1627,16 @@ ExecuteDaxQueries = (
 ) =>
     let
         doArgumentsExist = if(datasetId <> null and datasetId <> "") and (query <> null and query <> "") then true else false,
+        payload = BuildExecuteDaxRequestPayload(query, applicationContext, culture, customData, effectiveUsername, memoryLimit, queryTimeout, resultSetRowCountLimit, roles, schemaOnly),
+        params = [
+            RelativePath = "v1.0/myorg/datasets/" & datasetId & "/executeDaxQueries",
+            Headers = [#"Content-Type" = "application/json", Accept = "application/vnd.apache.arrow.stream, application/vnd.apache.arrow.file, application/octet-stream, application/json"],
+            Content = Json.FromValue(payload),
+            ManualStatusHandling = {200, 400}
+        ],
         result = if doArgumentsExist = false then
                     error Error.Record("PBIRESTAPIComm.ExecuteDaxQueries", "Please provide datasetId and query arguments")
-                 else
-                    let
-                        payload = BuildExecuteDaxRequestPayload(query, applicationContext, culture, customData, effectiveUsername, memoryLimit, queryTimeout, resultSetRowCountLimit, roles, schemaOnly),
-                        params = [
-                            RelativePath = "v1.0/myorg/datasets/" & datasetId & "/executeDaxQueries",
-                            Headers = [#"Content-Type" = "application/json", Accept = "application/vnd.apache.arrow.stream, application/vnd.apache.arrow.file, application/octet-stream, application/json"],
-                            Content = Json.FromValue(payload),
-                            ManualStatusHandling = {200, 400}
-                        ],
-                        postResult = PostExecuteDaxList(params)
-                    in
-                        postResult
+                 else PostExecuteDaxList(params)
     in
         result;
 /*** End ExecuteDaxQueries***/
@@ -1706,20 +1702,16 @@ ExecuteDaxQueriesInGroup = (
 ) =>
     let
         doArgumentsExist = if(groupId <> null and groupId <> "") and (datasetId <> null and datasetId <> "") and (query <> null and query <> "") then true else false,
+        payload = BuildExecuteDaxRequestPayload(query, applicationContext, culture, customData, effectiveUsername, memoryLimit, queryTimeout, resultSetRowCountLimit, roles, schemaOnly),
+        params = [
+            RelativePath = "v1.0/myorg/groups/" & groupId & "/datasets/" & datasetId & "/executeDaxQueries",
+            Headers = [#"Content-Type" = "application/json", Accept = "application/vnd.apache.arrow.stream, application/vnd.apache.arrow.file, application/octet-stream, application/json"],
+            Content = Json.FromValue(payload),
+            ManualStatusHandling = {200, 400}
+        ],
         result = if doArgumentsExist = false then
                     error Error.Record("PBIRESTAPIComm.ExecuteDaxQueriesInGroup", "Please provide groupId, datasetId and query arguments")
-                 else
-                    let
-                        payload = BuildExecuteDaxRequestPayload(query, applicationContext, culture, customData, effectiveUsername, memoryLimit, queryTimeout, resultSetRowCountLimit, roles, schemaOnly),
-                        params = [
-                            RelativePath = "v1.0/myorg/groups/" & groupId & "/datasets/" & datasetId & "/executeDaxQueries",
-                            Headers = [#"Content-Type" = "application/json", Accept = "application/vnd.apache.arrow.stream, application/vnd.apache.arrow.file, application/octet-stream, application/json"],
-                            Content = Json.FromValue(payload),
-                            ManualStatusHandling = {200, 400}
-                        ],
-                        postResult = PostExecuteDaxList(params)
-                    in
-                        postResult
+                 else PostExecuteDaxList(params)
     in
         result;
 /*** End ExecuteDaxQueriesInGroup***/
@@ -2988,29 +2980,29 @@ GetScorecardByReportIdInGroup = (optional groupdId as text, optional reportId as
     HELPER FUNCTIONS
 *****************/
 BuildExecuteDaxRequestPayload = (
-    query as text,
-    optional applicationContext as nullable text,
-    optional culture as nullable text,
-    optional customData as nullable text,
-    optional effectiveUsername as nullable text,
-    optional memoryLimit as nullable number,
-    optional queryTimeout as nullable number,
-    optional resultSetRowCountLimit as nullable number,
-    optional roles as nullable list,
-    optional schemaOnly as nullable logical
+    queryVal as text,
+    optional applicationContextVal as nullable text,
+    optional cultureVal as nullable text,
+    optional customDataVal as nullable text,
+    optional effectiveUsernameVal as nullable text,
+    optional memoryLimitVal as nullable number,
+    optional queryTimeoutVal as nullable number,
+    optional resultSetRowCountLimitVal as nullable number,
+    optional rolesVal as nullable list,
+    optional schemaOnlyVal as nullable logical
 ) as record =>
     let
         rawPayload = [
-            query = query,
-            applicationContext = applicationContext,
-            culture = culture,
-            customData = customData,
-            effectiveUsername = effectiveUsername,
-            memoryLimit = memoryLimit,
-            queryTimeout = queryTimeout,
-            resultSetRowCountLimit = resultSetRowCountLimit,
-            roles = roles,
-            schemaOnly = schemaOnly
+            query = queryVal,
+            applicationContext = applicationContextVal,
+            culture = cultureVal,
+            customData = customDataVal,
+            effectiveUsername = effectiveUsernameVal,
+            memoryLimit = memoryLimitVal,
+            queryTimeout = queryTimeoutVal,
+            resultSetRowCountLimit = resultSetRowCountLimitVal,
+            roles = rolesVal,
+            schemaOnly = schemaOnlyVal
         ],
         nullFieldNames = List.Select(Record.FieldNames(rawPayload), each Record.Field(rawPayload, _) = null),
         payload = if List.Count(nullFieldNames) > 0 then Record.RemoveFields(rawPayload, nullFieldNames) else rawPayload

@@ -169,7 +169,7 @@ loaded connector is stale/cached — not the source.
    ```
    = PBIRESTAPIComm.Version
    ```
-   The latest source build returns `2.2.0`. Any other value means the loaded
+   The latest source build returns `2.3.0`. Any other value means the loaded
    `.mez` is stale.
 
 2. Replace the connector and clear caches:
@@ -190,7 +190,7 @@ loaded connector is stale/cached — not the source.
    column `[Alpha]`, item 1 has `[Beta]`, item 2 has `[Gamma]`. Each item keeps
    its own schema (no column union). Expand an item to see its rows.
 
-4. If you still see unexpected behavior with a confirmed `2.2.0` build,
+4. If you still see unexpected behavior with a confirmed `2.3.0` build,
    capture the raw server response to determine whether the server itself
    returned unexpected content:
    ```powershell
